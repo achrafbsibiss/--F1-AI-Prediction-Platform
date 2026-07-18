@@ -1,57 +1,74 @@
-<% content_for :title, "Races" %>
+<% content_for :title, "#{Date.current.year} races" %>
 
-<div class="max-w-2xl">
-  <h1 class="text-3xl font-semibold">Race predictions</h1>
-  <p class="mt-2 text-ink-2">
-    Pick a race to see each driver's chance of winning, predicted by a model trained
-    on 101 past Grands Prix.
-  </p>
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-3xl font-bold"><%= @races.first&.season || Date.current.year %> Race Predictions</h1>
+    <p class="mt-1 text-ink-2">
+      Each driver's chance of winning, from a model trained on 101 past Grands Prix.
+    </p>
+  </div>
 </div>
 
 <% next_race = @races.find { |race| race.status != "finished" } %>
 
 <% if next_race %>
-  <section class="mt-8 rounded-xl border border-hairline bg-surface p-6">
-    <p class="text-xs uppercase tracking-wide text-ink-muted">Next race</p>
-
-    <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+  <section class="mt-6 overflow-hidden rounded border border-hairline bg-surface">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-l-4 border-accent px-5 py-5">
       <div>
-        <h2 class="text-2xl font-semibold"><%= next_race.name %></h2>
-        <p class="mt-1 text-ink-2"><%= next_race.circuit.name %>, <%= next_race.circuit.country %></p>
-        <p class="mt-1 text-sm text-ink-muted">
+        <p class="text-xs font-medium uppercase tracking-wide text-ink-muted">Next race</p>
+        <h2 class="mt-1 text-2xl font-bold"><%= next_race.name %></h2>
+        <p class="mt-1 text-sm text-ink-2">
+          <%= next_race.circuit.name %>, <%= next_race.circuit.country %>
+        </p>
+        <p class="text-sm text-ink-muted">
           <%= next_race.starts_at&.strftime("%A %d %B, %H:%M") || "Time to be confirmed" %>
         </p>
       </div>
 
       <%= link_to "View prediction", race_path(next_race),
-            class: "rounded-lg bg-accent px-4 py-2 font-semibold text-white hover:brightness-110" %>
+            class: "rounded bg-accent px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white hover:brightness-110" %>
     </div>
   </section>
 <% end %>
 
-<% other_races = @races - [ next_race ] %>
+<h2 class="mt-8 mb-3 text-sm font-bold uppercase tracking-wide text-ink-muted">
+  Full calendar
+</h2>
 
-<% if other_races.any? %>
-  <h2 class="mt-10 mb-3 text-sm uppercase tracking-wide text-ink-muted">All races</h2>
+<div class="overflow-x-auto rounded border border-hairline bg-surface">
+  <table class="w-full min-w-136 text-sm">
+    <thead>
+      <tr class="border-b border-hairline text-xs uppercase tracking-wide text-ink-muted">
+        <th scope="col" class="w-16 px-4 py-2.5 text-left font-medium">Round</th>
+        <th scope="col" class="px-4 py-2.5 text-left font-medium">Grand Prix</th>
+        <th scope="col" class="px-4 py-2.5 text-left font-medium">Circuit</th>
+        <th scope="col" class="w-28 px-4 py-2.5 text-left font-medium">Date</th>
+        <th scope="col" class="w-24 px-4 py-2.5 text-right font-medium">Status</th>
+      </tr>
+    </thead>
 
-  <ul class="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline bg-surface">
-    <% other_races.each do |race| %>
-      <li>
-        <%= link_to race_path(race), class: "flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 hover:bg-surface-2" do %>
-          <span class="w-16 shrink-0 text-xs text-ink-muted">
-            R<%= race.round %> · <%= race.season %>
-          </span>
-          <span class="min-w-0 flex-1 font-medium"><%= race.name %></span>
-          <span class="text-sm text-ink-muted"><%= race.circuit.name %></span>
-          <%= render "races/status_pill", status: race.status %>
-        <% end %>
-      </li>
-    <% end %>
-  </ul>
-<% end %>
+    <tbody>
+      <% @races.each do |race| %>
+        <tr class="border-b border-hairline last:border-0 hover:bg-surface-2/50">
+          <td class="px-4 py-2.5 tabular-nums text-ink-muted"><%= race.round %></td>
+          <td class="px-4 py-2.5">
+            <%= link_to race.name, race_path(race), class: "font-medium hover:text-accent" %>
+          </td>
+          <td class="px-4 py-2.5 text-ink-muted"><%= race.circuit.name %></td>
+          <td class="px-4 py-2.5 tabular-nums text-ink-muted">
+            <%= race.starts_at&.strftime("%d %b") || "TBC" %>
+          </td>
+          <td class="px-4 py-2.5 text-right">
+            <%= render "races/status_pill", status: race.status %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
 
 <% if @races.empty? %>
-  <p class="mt-8 rounded-xl border border-hairline bg-surface px-5 py-8 text-center text-ink-muted">
-    No races loaded. Run <code class="text-ink-2">bin/rails db:seed</code> to add a demo race.
+  <p class="mt-8 rounded border border-hairline bg-surface px-5 py-8 text-center text-ink-muted">
+    No races loaded. Run <code class="text-ink-2">bin/rails "f1:calendar[<%= Date.current.year %>]"</code>.
   </p>
 <% end %>

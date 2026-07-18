@@ -4,111 +4,150 @@
   entries_by_driver = race.race_entries.index_by(&:driver_id)
 %>
 <section id="race_<%= race.id %>_prediction_card"
-         class="rounded-xl border border-hairline bg-surface"
+         class="overflow-hidden rounded border border-hairline bg-surface"
          data-controller="prediction">
-  <header class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-6 py-5">
+  <header class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-5 py-4">
     <div>
-      <h2 class="text-lg font-semibold">Who wins?</h2>
+      <h2 class="text-sm font-bold uppercase tracking-wide">Predicted result</h2>
       <p class="mt-1 text-sm text-ink-muted">
-        Chance of taking victory, for every car on the grid.
+        Chance of winning, for every car on the grid.
       </p>
     </div>
 
     <% if predictions.any? %>
       <p class="text-right text-xs text-ink-muted">
-        model <%= leader.model_version %><br>
-        updated <%= time_ago_in_words(leader.updated_at) %> ago
+        <%= leader.model_version %> · <%= time_ago_in_words(leader.updated_at) %> ago
       </p>
     <% end %>
   </header>
 
   <% if predictions.empty? %>
-    <div class="px-6 py-12 text-center">
+    <div class="px-5 py-12 text-center">
       <p class="text-ink-2">No prediction yet.</p>
       <p class="mx-auto mt-2 max-w-md text-sm text-ink-muted">
         Generating one sends the starting grid and each driver's form rating to the
-        model, then fills this card in. It takes about a second.
+        model, then fills this table in. It takes about a second.
       </p>
       <% if user_signed_in? %>
         <div class="mt-5">
           <%= button_to "Generate prediction", race_prediction_path(race),
-                class: "rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:brightness-110" %>
+                class: "rounded bg-accent px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white hover:brightness-110" %>
         </div>
       <% end %>
     </div>
   <% else %>
-    <!-- Hero figure: the one number this card exists to deliver. -->
-    <div class="border-b border-hairline px-6 py-6">
-      <p class="text-xs uppercase tracking-wide text-ink-muted">Most likely winner</p>
-      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span class="text-5xl font-semibold leading-none text-accent"><%= leader.percentage %>%</span>
-        <span class="flex items-center gap-2.5">
-          <%= render "drivers/avatar", driver: leader.driver, size: "h-10 w-10", text_size: "text-sm" %>
-          <span class="text-xl font-medium"><%= leader.driver.full_name %></span>
-        </span>
+    <!-- Hero: the one number this card exists to deliver. -->
+    <div class="flex flex-wrap items-center gap-5 border-b border-hairline bg-surface-2/40 px-5 py-5">
+      <%= render "drivers/avatar", driver: leader.driver, size: "h-16 w-16", text_size: "text-base" %>
+
+      <div class="min-w-0">
+        <p class="text-xs uppercase tracking-wide text-ink-muted">Most likely winner</p>
+        <p class="mt-0.5 truncate text-xl font-bold"><%= leader.driver.full_name %></p>
+        <p class="mt-0.5 text-sm text-ink-muted">
+          <%= leader.driver.constructor.short_name %>
+          · starts P<%= entries_by_driver[leader.driver_id]&.grid_position || "?" %>
+        </p>
       </div>
-      <p class="mt-2 text-sm text-ink-muted">
-        <span class="mr-1 inline-block h-2 w-2 rounded-full align-middle"
-              style="background-color: <%= leader.driver.constructor.team_color %>"></span>
-        <%= leader.driver.constructor.name %>
-        · starts P<%= entries_by_driver[leader.driver_id]&.grid_position || "?" %>
-        · <%= podium_by_driver[leader.driver_id]&.percentage || 0 %>% chance of a podium
+
+      <p class="ml-auto text-right">
+        <span class="block text-4xl font-bold leading-none text-accent"><%= leader.percentage %>%</span>
+        <span class="mt-1 block text-xs uppercase tracking-wide text-ink-muted">to win</span>
       </p>
     </div>
 
-    <!-- Full field. Every value is on-screen as text, so this doubles as the table view. -->
-    <ol class="divide-y divide-hairline">
-      <% predictions.each_with_index do |prediction, index| %>
-        <%
-          driver = prediction.driver
-          entry = entries_by_driver[driver.id]
-          podium = podium_by_driver[driver.id]
-          leading = index.zero?
-        %>
-        <li class="px-6 py-3">
-          <div class="flex items-center gap-3">
-            <span class="w-5 shrink-0 text-right text-xs tabular-nums text-ink-muted">
-              <%= index + 1 %>
-            </span>
+    <!-- Every value is present as text, so this table is also the accessible view. -->
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-136 text-sm">
+        <thead>
+          <tr class="border-b border-hairline text-xs uppercase tracking-wide text-ink-muted">
+            <th scope="col" class="w-10 px-3 py-2 text-left font-medium">Pos</th>
+            <th scope="col" class="px-3 py-2 text-left font-medium">Driver</th>
+            <th scope="col" class="w-14 px-3 py-2 text-right font-medium">Grid</th>
+            <th scope="col" class="w-40 px-3 py-2 text-left font-medium">Win chance</th>
+            <th scope="col" class="w-20 px-3 py-2 text-right font-medium">Podium</th>
+          </tr>
+        </thead>
 
-            <span class="inline-block h-3 w-1 shrink-0 rounded-sm"
-                  style="background-color: <%= driver.constructor.team_color %>"
-                  aria-hidden="true"></span>
+        <tbody>
+          <% predictions.each_with_index do |prediction, index| %>
+            <%
+              driver = prediction.driver
+              entry = entries_by_driver[driver.id]
+              podium = podium_by_driver[driver.id]
+              leading = index.zero?
+            %>
+            <tr class="border-b border-hairline last:border-0 <%= "bg-surface-2/40" if leading %>">
+              <td class="px-3 py-2 text-center font-semibold tabular-nums"><%= index + 1 %></td>
 
-            <%= render "drivers/avatar", driver: driver, size: "h-7 w-7", text_size: "text-[10px]" %>
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-2.5">
+                  <%= render "constructors/mark", constructor: driver.constructor %>
+                  <%= render "drivers/avatar", driver: driver, size: "h-8 w-8", text_size: "text-[10px]" %>
+                  <span class="min-w-0">
+                    <span class="block truncate <%= leading ? "font-semibold" : "font-medium" %>">
+                      <%= driver.full_name %>
+                    </span>
+                    <span class="block truncate text-xs text-ink-muted">
+                      <%= driver.constructor.short_name %>
+                    </span>
+                  </span>
+                </div>
+              </td>
 
-            <span class="min-w-0 flex-1 truncate text-sm <%= leading ? "font-semibold" : "" %>">
-              <%= driver.full_name %>
-              <span class="text-ink-muted"><%= driver.constructor.short_name %></span>
-            </span>
+              <td class="px-3 py-2 text-right tabular-nums text-ink-muted">
+                <%= entry&.grid_position || "—" %>
+              </td>
 
-            <span class="shrink-0 text-xs tabular-nums text-ink-muted">
-              P<%= entry&.grid_position || "?" %>
-            </span>
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-2">
+                  <!-- min-width keeps a long-shot's bar visible instead of an
+                       empty track, which reads as missing data. -->
+                  <span class="h-1.5 flex-1 overflow-hidden rounded-l-sm bg-surface-2">
+                    <span class="block h-full min-w-0.5 rounded-r-sm transition-[width] duration-700 ease-out <%= leading ? "bg-accent" : "bg-deemph" %>"
+                          style="width: <%= [ prediction.percentage, 100 ].min %>%"
+                          data-prediction-target="bar"></span>
+                  </span>
+                  <span class="w-12 shrink-0 text-right tabular-nums <%= leading ? "font-semibold" : "text-ink-2" %>">
+                    <%= prediction.display_percentage %>
+                  </span>
+                </div>
+              </td>
 
-            <span class="w-14 shrink-0 text-right text-sm tabular-nums <%= leading ? "font-semibold text-ink" : "text-ink-2" %>">
-              <%= prediction.display_percentage %>
-            </span>
-          </div>
+              <td class="px-3 py-2 text-right tabular-nums text-ink-muted">
+                <%= podium ? podium.display_percentage : "—" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
-          <div class="mt-2 flex items-center gap-3">
-            <!-- Bar caps at 8px and rounds only at the data end, per the mark spec.
-                 min-width keeps a long-shot's bar visible instead of rendering
-                 an empty track that reads as missing data. -->
-            <div class="h-2 flex-1 overflow-hidden rounded-l-sm bg-surface-2">
-              <div class="h-full min-w-0.5 rounded-r-sm transition-[width] duration-700 ease-out <%= leading ? "bg-accent" : "bg-deemph" %>"
-                   style="width: <%= [ prediction.percentage, 100 ].min %>%"
-                   data-prediction-target="bar"></div>
-            </div>
-            <span class="w-28 shrink-0 text-right text-xs tabular-nums text-ink-muted">
-              podium <%= podium ? podium.display_percentage : "&mdash;".html_safe %>
-            </span>
-          </div>
-        </li>
+    <footer class="space-y-3 border-t border-hairline px-5 py-4">
+      <%# CC BY / BY-SA require visible attribution, so the photographers are
+          listed here rather than only in an image tooltip. %>
+      <% credited = predictions.map(&:driver).select { |d| d.image_attribution.present? } %>
+      <% if credited.any? %>
+        <details>
+          <summary class="cursor-pointer text-sm text-ink-2 hover:text-ink">
+            Photo credits
+          </summary>
+          <ul class="mt-2 space-y-0.5 text-xs text-ink-muted">
+            <% credited.each do |driver| %>
+              <li>
+                <%= driver.full_name %> —
+                <% if driver.image_source_url.present? %>
+                  <%= link_to driver.image_attribution, driver.image_source_url,
+                        class: "underline hover:text-ink-2", rel: "noopener" %>
+                <% else %>
+                  <%= driver.image_attribution %>
+                <% end %>
+                <%= "(#{driver.image_license})" if driver.image_license.present? %>
+              </li>
+            <% end %>
+          </ul>
+        </details>
       <% end %>
-    </ol>
 
-    <footer class="border-t border-hairline px-6 py-4">
       <details class="group">
         <summary class="cursor-pointer text-sm text-ink-2 hover:text-ink">
           How is this calculated?

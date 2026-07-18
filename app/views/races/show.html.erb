@@ -3,53 +3,58 @@
 <%= turbo_stream_from @race.prediction_stream %>
 
 <%= link_to races_path, class: "text-sm text-ink-muted hover:text-ink" do %>
-  &larr; All races
+  &larr; <%= @race.season %> race calendar
 <% end %>
 
-<div class="mt-4 flex flex-wrap items-start justify-between gap-4">
-  <div>
-    <div class="flex items-center gap-3">
-      <h1 class="text-3xl font-semibold"><%= @race.name %></h1>
-      <%= render "races/status_pill", status: @race.status %>
+<!-- Race hub header -->
+<section class="mt-4 overflow-hidden rounded border border-hairline bg-surface">
+  <div class="flex flex-wrap items-start justify-between gap-4 border-l-4 border-accent px-5 py-5">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-ink-muted">
+        Round <%= @race.round %> · <%= @race.circuit.country %>
+      </p>
+      <h1 class="mt-1 text-3xl font-bold"><%= @race.name %></h1>
+      <p class="mt-1 text-ink-2"><%= @race.circuit.name %></p>
+      <p class="mt-0.5 text-sm text-ink-muted">
+        <%= @race.starts_at&.strftime("%A %d %B %Y, %H:%M") || "Time to be confirmed" %>
+      </p>
     </div>
-    <p class="mt-2 text-ink-2">
-      <%= @race.circuit.name %>, <%= @race.circuit.country %>
-    </p>
-    <p class="text-sm text-ink-muted">
-      Round <%= @race.round %> of the <%= @race.season %> season
-      · <%= @race.starts_at&.strftime("%A %d %B, %H:%M") || "time to be confirmed" %>
-    </p>
+
+    <div class="flex flex-col items-end gap-3">
+      <%= render "races/status_pill", status: @race.status %>
+
+      <% if user_signed_in? %>
+        <%= button_to "Generate prediction", race_prediction_path(@race),
+              class: "rounded bg-accent px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white hover:brightness-110" %>
+      <% else %>
+        <%= link_to "Sign in to generate a prediction", new_user_session_path,
+              class: "rounded border border-hairline px-4 py-2 text-sm text-ink-2 hover:text-ink" %>
+      <% end %>
+    </div>
   </div>
 
-  <% if user_signed_in? %>
-    <%= button_to "Generate prediction", race_prediction_path(@race),
-          class: "rounded-lg bg-accent px-4 py-2 font-semibold text-white hover:brightness-110" %>
-  <% else %>
-    <%= link_to "Sign in to generate a prediction", new_user_session_path,
-          class: "rounded-lg border border-hairline px-4 py-2 text-sm text-ink-2 hover:text-ink" %>
-  <% end %>
-</div>
-
-<!-- KPI row: only the facts we actually hold. The importer fills circuit name and
-     country; lap count and length aren't in the FastF1 schedule, so those tiles
-     appear only once something populates them. -->
-<%
-  tiles = [
-    [ "Round", "#{@race.round} of 22" ],
-    [ "Cars entered", @entries.size ],
-    ([ "Laps", @race.circuit.laps ] if @race.circuit.laps),
-    ([ "Lap length", "#{@race.circuit.length_km} km" ] if @race.circuit.length_km),
-    [ "Grid", @race.real_grid? ? "Set" : "Estimated" ]
-  ].compact.first(4)
-%>
-<dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-  <% tiles.each do |label, value| %>
-    <div class="rounded-lg border border-hairline bg-surface px-4 py-3">
-      <dt class="text-xs uppercase tracking-wide text-ink-muted"><%= label %></dt>
-      <dd class="mt-1 text-xl font-semibold"><%= value %></dd>
-    </div>
-  <% end %>
-</dl>
+  <!-- Only facts we actually hold: the importer fills circuit name and country,
+       lap count and length aren't in the FastF1 schedule. -->
+  <%
+    facts = [
+      [ "Round", "#{@race.round} of 22" ],
+      [ "Cars", @entries.size ],
+      ([ "Laps", @race.circuit.laps ] if @race.circuit.laps),
+      [ "Grid", @race.real_grid? ? "Confirmed" : "Estimated" ]
+    ].compact
+  %>
+  <%# Static class list: Tailwind scans source text, so an interpolated
+      grid-cols-#{n} would never be generated. %>
+  <% columns = { 3 => "sm:grid-cols-3", 4 => "sm:grid-cols-4" }.fetch(facts.size, "sm:grid-cols-4") %>
+  <dl class="grid grid-cols-2 divide-x divide-hairline border-t border-hairline <%= columns %>">
+    <% facts.each do |label, value| %>
+      <div class="px-5 py-3">
+        <dt class="text-xs uppercase tracking-wide text-ink-muted"><%= label %></dt>
+        <dd class="mt-0.5 text-lg font-semibold"><%= value %></dd>
+      </div>
+    <% end %>
+  </dl>
+</section>
 
 <%= render "shared/data_notice" %>
 
@@ -58,27 +63,26 @@
     <%= render "predictions/card", race: @race, predictions: @predictions %>
   </div>
 
-  <section class="self-start rounded-xl border border-hairline bg-surface lg:sticky lg:top-6">
-    <header class="border-b border-hairline px-6 py-5">
-      <h2 class="text-lg font-semibold">Starting grid</h2>
+  <section class="self-start overflow-hidden rounded border border-hairline bg-surface lg:sticky lg:top-6">
+    <header class="border-b border-hairline px-5 py-4">
+      <h2 class="text-sm font-bold uppercase tracking-wide">Starting grid</h2>
       <p class="mt-1 text-sm text-ink-muted">
-        The model's main input. Form rating is 0&ndash;100.
+        <%= @race.real_grid? ? "From qualifying." : "Estimated from form." %>
+        Rating is 0&ndash;100.
       </p>
     </header>
 
-    <ol class="divide-y divide-hairline">
+    <ol>
       <% @entries.each do |entry| %>
-        <li class="flex items-center gap-3 px-6 py-2.5 text-sm">
-          <span class="w-6 shrink-0 text-right tabular-nums text-ink-muted">
+        <li class="flex items-center gap-2.5 border-b border-hairline px-5 py-2 text-sm last:border-0">
+          <span class="w-5 shrink-0 text-right font-semibold tabular-nums text-ink-muted">
             <%= entry.grid_position %>
           </span>
-          <span class="inline-block h-3 w-1 shrink-0 rounded-sm"
-                style="background-color: <%= entry.constructor.team_color %>"
-                aria-hidden="true"></span>
+          <%= render "constructors/mark", constructor: entry.constructor %>
           <%= render "drivers/avatar", driver: entry.driver, size: "h-7 w-7", text_size: "text-[10px]" %>
-          <span class="min-w-0 flex-1 truncate">
-            <%= entry.driver.full_name %>
-            <span class="text-ink-muted"><%= entry.constructor.short_name %></span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium"><%= entry.driver.full_name %></span>
+            <span class="block truncate text-xs text-ink-muted"><%= entry.constructor.short_name %></span>
           </span>
           <span class="shrink-0 tabular-nums text-ink-muted">
             <%= entry.pace_rating&.to_f&.round %>

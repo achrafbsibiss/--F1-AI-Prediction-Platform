@@ -1,12 +1,18 @@
 <%
   size ||= "h-9 w-9"
   text_size ||= "text-xs"
+  # Credit rides with the image: the CC licenses these are fetched under
+  # require attribution wherever the photo appears.
+  credit = [ driver.image_attribution, driver.image_license ].compact_blank.join(" · ")
 %>
 <% if driver.image_url.present? %>
   <%= image_tag driver.image_url,
         alt: driver.full_name,
         loading: "lazy",
-        class: "#{size} shrink-0 rounded-full object-cover ring-1 ring-hairline" %>
+        title: credit.presence && "#{driver.full_name} — #{credit}",
+        # object-top because these are full-height portraits; a centre crop
+        # frames the driver's chest rather than their face.
+        class: "#{size} shrink-0 rounded-full bg-surface-2 object-cover object-top ring-1 ring-hairline" %>
 <% else %>
   <span class="<%= size %> <%= text_size %> flex shrink-0 items-center justify-center rounded-full font-semibold text-ink ring-1 ring-hairline"
         style="background-color: <%= driver.constructor.team_color %>26"

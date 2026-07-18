@@ -163,10 +163,33 @@ the model's strongest feature.
 
 ### Driver photos
 
-`drivers.image_url` is left null by the importer. Official F1 portraits are
-copyrighted and are not fetched; the UI falls back to a generated initials
-avatar in team colors. Populate `image_url` yourself with images you are
-licensed to use.
+```bash
+bin/rails f1:portraits          # only drivers still missing one
+bin/rails "f1:portraits[all]"   # refresh every driver
+```
+
+Portraits come from **Wikimedia Commons**, not Formula 1 — official F1 press
+photos are copyrighted and cannot be reused. The importer accepts an image only
+when its license permits reuse (CC BY, CC BY-SA, CC0, public domain, OGL) and
+stores the photographer and license alongside the URL. Anything whose license
+can't be confirmed is skipped, and the UI falls back to an initials avatar.
+
+Credit is displayed in a "Photo credits" disclosure on the race page, because
+these licenses require visible attribution.
+
+Wikipedia throttles bursts, so a run may not fetch everyone. The task only
+retries drivers still missing a portrait — **just run it again** until it
+reports all drivers covered.
+
+### Team logos
+
+**Not included, by design.** F1 team logos are registered trademarks published
+under no reusable license, so nothing fetches them. Team identity is the team
+color bar plus the name in text.
+
+`constructors.logo_url` exists for you to populate with assets you are licensed
+to display; `app/views/constructors/_mark.html.erb` renders the logo when it is
+set and the color bar when it isn't.
 
 ---
 

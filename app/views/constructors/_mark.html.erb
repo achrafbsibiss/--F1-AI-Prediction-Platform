@@ -1,0 +1,17 @@
+<%
+  # Team identity. Official F1 team logos are trademarks published under no
+  # reusable license, so none are bundled: unless someone supplies a licensed
+  # asset via constructor.logo_url, identity is the team's color bar plus its
+  # name in text — which never relies on color alone.
+  height ||= "h-6"
+%>
+<% if constructor.logo_url.present? %>
+  <%= image_tag constructor.logo_url,
+        alt: constructor.name,
+        loading: "lazy",
+        class: "#{height} w-auto shrink-0 object-contain" %>
+<% else %>
+  <span class="inline-block h-6 w-1 shrink-0 rounded-sm"
+        style="background-color: <%= constructor.team_color %>"
+        aria-hidden="true"></span>
+<% end %>

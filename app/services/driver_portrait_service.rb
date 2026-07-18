@@ -35,6 +35,10 @@ class DriverPortraitService
   # Returns the driver on success, nil when no usable image was found.
   def import(driver)
     file = candidate_titles(driver).lazy.filter_map { |title| page_image_file(title) }.first
+    # Wikipedia's title may not be the name FastF1 reports ("Nico Hulkenberg"
+    # vs "Nico Hülkenberg", "Carlos Sainz" vs "Carlos Sainz Jr."), so fall back
+    # to searching rather than giving up on an exact match.
+    file ||= page_image_file(search_title(driver))
     return nil if file.blank?
 
     info = image_info(file)
@@ -67,6 +71,19 @@ class DriverPortraitService
   # can land on a disambiguation page that has no portrait.
   def candidate_titles(driver)
     [ driver.full_name, "#{driver.full_name} (racing driver)", "#{driver.full_name} (driver)" ]
+  end
+
+  # Best-matching article title for a driver, via Wikipedia search.
+  def search_title(driver)
+    body = get(
+      action: "query",
+      list: "search",
+      srsearch: "#{driver.full_name} Formula One driver",
+      srlimit: 1,
+      format: "json"
+    )
+
+    body.dig("query", "search", 0, "title")
   end
 
   def reusable_license?(info)

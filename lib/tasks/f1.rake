@@ -19,13 +19,26 @@ namespace :f1 do
     end
   end
 
-  desc "Fetch CC-licensed driver portraits from Wikimedia Commons"
-  task portraits: :environment do
-    imported = DriverPortraitService.new.import_all
-    puts "Portraits: #{imported.size}/#{Driver.count} drivers."
+  desc "Fetch CC-licensed driver portraits: rake f1:portraits or rake 'f1:portraits[all]'"
+  task :portraits, [ :scope ] => :environment do |_task, args|
+    # Only the drivers still missing a portrait, so a run throttled by the
+    # Wikipedia API can simply be repeated until it converges.
+    drivers = args[:scope] == "all" ? Driver.all : Driver.where(image_url: nil)
+
+    if drivers.none?
+      puts "All #{Driver.count} drivers already have a portrait."
+      next
+    end
+
+    imported = DriverPortraitService.new.import_all(drivers)
+    puts "Fetched #{imported.size} of #{drivers.size} attempted."
 
     missing = Driver.where(image_url: nil).pluck(:code)
-    puts "No usable image for: #{missing.join(", ")}" if missing.any?
+    if missing.any?
+      puts "Still missing: #{missing.join(", ")} — re-run to retry (API throttling)."
+    else
+      puts "All #{Driver.count} drivers have a portrait."
+    end
   end
 
   desc "Import the next upcoming race of a season: rake 'f1:next[2026]'"

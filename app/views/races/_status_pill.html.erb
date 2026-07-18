@@ -1,10 +1,10 @@
 <%
   classes = {
-    "scheduled" => "border-hairline text-ink-muted",
-    "live" => "border-good text-good",
-    "finished" => "border-hairline text-ink-2"
-  }.fetch(status, "border-hairline text-ink-muted")
+    "scheduled" => "border-hairline bg-surface-2 text-ink-2",
+    "live" => "border-accent bg-accent text-white",
+    "finished" => "border-hairline bg-surface text-ink-muted"
+  }.fetch(status, "border-hairline bg-surface-2 text-ink-2")
 %>
-<span class="rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide <%= classes %>">
+<span class="rounded-sm border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide <%= classes %>">
   <%= status %>
 </span>

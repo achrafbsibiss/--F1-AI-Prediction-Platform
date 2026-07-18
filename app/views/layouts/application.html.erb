@@ -19,15 +19,16 @@
   </head>
 
   <body class="min-h-screen bg-plane text-ink antialiased">
-    <header class="border-b border-hairline">
+    <header class="border-b border-hairline bg-surface">
       <nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <%= link_to root_path, class: "text-lg font-semibold tracking-tight" do %>
-          <span class="text-accent">F1</span> Predictions
+        <%= link_to root_path, class: "flex items-center gap-2.5" do %>
+          <span class="h-6 w-1.5 rounded-sm bg-accent" aria-hidden="true"></span>
+          <span class="text-lg font-bold uppercase tracking-tight">Race Predictions</span>
         <% end %>
 
         <div class="flex items-center gap-4 text-sm text-ink-muted">
           <% if user_signed_in? %>
-            <span><%= current_user.email %></span>
+            <span class="hidden sm:inline"><%= current_user.email %></span>
             <%= button_to "Sign out", destroy_user_session_path, method: :delete,
                   class: "hover:text-ink" %>
           <% else %>
@@ -40,7 +41,7 @@
 
     <% if flash[:notice] || flash[:alert] %>
       <div class="mx-auto max-w-6xl px-5 pt-5">
-        <p class="rounded-lg border border-hairline bg-surface px-4 py-2.5 text-sm text-ink-2">
+        <p class="rounded border-l-4 border-accent bg-surface px-4 py-2.5 text-sm text-ink-2">
           <%= flash[:notice] || flash[:alert] %>
         </p>
       </div>
@@ -49,5 +50,16 @@
     <main class="mx-auto max-w-6xl px-5 py-8">
       <%= yield %>
     </main>
+
+    <footer class="mx-auto max-w-6xl px-5 pb-10 pt-4 text-xs text-ink-muted">
+      <p>
+        Independent project. Not affiliated with, endorsed by, or a source of
+        official Formula 1 information.
+      </p>
+      <p class="mt-1">
+        Race data via <a href="https://docs.fastf1.dev" class="underline hover:text-ink-2">FastF1</a>.
+        Driver portraits from Wikimedia Commons under their respective licenses.
+      </p>
+    </footer>
   </body>
 </html>
