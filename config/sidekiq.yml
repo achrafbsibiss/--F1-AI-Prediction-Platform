@@ -1,0 +1,5 @@
+:concurrency: 5
+:queues:
+  - [live, 3]
+  - [predictions, 2]
+  - [default, 1]
