@@ -1,2 +1,4 @@
 web: bin/rails server
 css: bin/rails tailwindcss:watch
+worker: bundle exec sidekiq -C config/sidekiq.yml
+ai: cd ai_service && ./venv/bin/uvicorn app.main:app --reload --port 8000

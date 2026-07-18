@@ -1,6 +1,9 @@
-# Demo fixtures for local development: the 2025 grid and one race weekend.
-# Real data is meant to arrive through FetchF1DataJob (FastF1/OpenF1); this file
-# only exists so the app has something to render before that pipeline is wired.
+# Demo fixtures for local development: a full grid and one race weekend.
+#
+# The driver/team lineup below is the 2025 season and the starting grid is
+# invented, NOT a real qualifying result. Real entries and grids are meant to
+# arrive through FetchF1DataJob (FastF1/OpenF1); this file only exists so the
+# app has something to render before that pipeline is wired.
 
 TEAMS = {
   "McLaren"      => { country: "United Kingdom", color: "#ff8000" },
@@ -39,7 +42,9 @@ DRIVERS = [
   [ "BOR", "Gabriel Bortoleto",      5, "Brazil",         "Kick Sauber" ]
 ].freeze
 
-# Starting grid for the demo race, with a 0-100 form rating used as a model feature.
+# Invented starting grid for the demo race, with a 0-100 form rating used as a
+# model feature. Replace with real qualifying results before reading anything
+# into the predictions.
 GRID = [
   [ "NOR", 1,  96.0 ], [ "PIA", 2,  94.5 ], [ "LEC", 3,  90.0 ], [ "VER", 4,  92.0 ],
   [ "RUS", 5,  88.0 ], [ "HAM", 6,  87.5 ], [ "ALO", 7,  82.0 ], [ "ALB", 8,  80.5 ],
@@ -74,11 +79,12 @@ ActiveRecord::Base.transaction do
     laps: 44
   )
 
-  race = Race.find_or_initialize_by(season: 2025, round: 13)
+  # Dated today so the demo always has a race to predict.
+  race = Race.find_or_initialize_by(season: Date.current.year, round: 13)
   race.update!(
     name: "Belgian Grand Prix",
     circuit: circuit,
-    starts_at: Time.zone.parse("2025-07-27 15:00:00"),
+    starts_at: Time.zone.now.change(hour: 15, min: 0),
     status: "scheduled"
   )
 
@@ -100,17 +106,21 @@ ActiveRecord::Base.transaction do
     )
   end
 
-  User.find_or_initialize_by(email: "admin@f1.local").tap do |user|
-    user.password = "password123"
-    user.role = "admin"
-    user.save!
-  end
+  # Demo logins. Development/test only — the password is public in this repo.
+  raise "refusing to seed demo users in production" if Rails.env.production?
 
-  User.find_or_initialize_by(email: "premium@f1.local").tap do |user|
-    user.password = "password123"
-    user.role = "premium_user"
-    user.save!
+  {
+    "admin@f1.local" => "admin",
+    "premium@f1.local" => "premium_user",
+    "user@f1.local" => "user"
+  }.each do |email, role|
+    User.find_or_initialize_by(email: email).tap do |user|
+      user.password = "password123"
+      user.role = role
+      user.save!
+    end
   end
 end
 
-puts "Seeded #{Constructor.count} teams, #{Driver.count} drivers, #{Race.count} race(s)."
+puts "Seeded #{Constructor.count} teams, #{Driver.count} drivers, #{Race.count} race(s), #{User.count} users."
+puts "Login: admin@f1.local / premium@f1.local / user@f1.local — password123"
