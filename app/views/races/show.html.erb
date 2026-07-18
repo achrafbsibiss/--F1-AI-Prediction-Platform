@@ -2,39 +2,80 @@
 
 <%= turbo_stream_from @race.prediction_stream %>
 
-<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+<%= link_to races_path, class: "text-sm text-ink-muted hover:text-ink" do %>
+  &larr; All races
+<% end %>
+
+<div class="mt-4 flex flex-wrap items-start justify-between gap-4">
   <div>
-    <p class="text-xs uppercase tracking-wide text-slate-500">
-      Round <%= @race.round %> · <%= @race.season %> · <%= @race.status %>
-    </p>
-    <h1 class="text-3xl font-bold"><%= @race.name %></h1>
-    <p class="mt-1 text-slate-400">
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl font-semibold"><%= @race.name %></h1>
+      <%= render "races/status_pill", status: @race.status %>
+    </div>
+    <p class="mt-2 text-ink-2">
       <%= @race.circuit.name %>, <%= @race.circuit.country %>
-      · <%= @race.circuit.laps %> laps · <%= @race.circuit.length_km %> km
+    </p>
+    <p class="text-sm text-ink-muted">
+      Round <%= @race.round %> of the <%= @race.season %> season
+      · <%= @race.starts_at&.strftime("%A %d %B, %H:%M") || "time to be confirmed" %>
     </p>
   </div>
 
   <% if user_signed_in? %>
     <%= button_to "Generate prediction", race_prediction_path(@race),
-          class: "rounded-lg bg-red-600 px-4 py-2 font-semibold hover:bg-red-500" %>
+          class: "rounded-lg bg-accent px-4 py-2 font-semibold text-white hover:brightness-110" %>
   <% else %>
     <%= link_to "Sign in to generate a prediction", new_user_session_path,
-          class: "text-sm text-slate-400 hover:text-white" %>
+          class: "rounded-lg border border-hairline px-4 py-2 text-sm text-ink-2 hover:text-ink" %>
   <% end %>
 </div>
 
-<div class="grid gap-6 lg:grid-cols-2">
-  <%= render "predictions/card", race: @race, predictions: @predictions %>
+<!-- KPI row: circuit facts, which are the physical context for the numbers below. -->
+<dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <% [
+       [ "Laps", @race.circuit.laps ],
+       [ "Lap length", "#{@race.circuit.length_km} km" ],
+       [ "Corners", @race.circuit.corners ],
+       [ "Cars entered", @entries.size ]
+     ].each do |label, value| %>
+    <div class="rounded-lg border border-hairline bg-surface px-4 py-3">
+      <dt class="text-xs uppercase tracking-wide text-ink-muted"><%= label %></dt>
+      <dd class="mt-1 text-xl font-semibold"><%= value %></dd>
+    </div>
+  <% end %>
+</dl>
 
-  <section class="rounded-xl border border-slate-800 bg-slate-900 p-5">
-    <h2 class="mb-4 text-lg font-semibold">Starting grid</h2>
-    <ol class="space-y-1 text-sm">
+<%= render "shared/demo_data_notice" %>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <%= render "predictions/card", race: @race, predictions: @predictions %>
+  </div>
+
+  <section class="self-start rounded-xl border border-hairline bg-surface lg:sticky lg:top-6">
+    <header class="border-b border-hairline px-6 py-5">
+      <h2 class="text-lg font-semibold">Starting grid</h2>
+      <p class="mt-1 text-sm text-ink-muted">
+        The model's main input. Form rating is 0&ndash;100.
+      </p>
+    </header>
+
+    <ol class="divide-y divide-hairline">
       <% @entries.each do |entry| %>
-        <li class="flex items-center gap-3 py-1">
-          <span class="w-6 text-right text-slate-500"><%= entry.grid_position %></span>
-          <span class="h-4 w-1 rounded" style="background-color: <%= entry.constructor.team_color %>"></span>
-          <span class="font-medium"><%= entry.driver.full_name %></span>
-          <span class="text-slate-500"><%= entry.constructor.name %></span>
+        <li class="flex items-center gap-3 px-6 py-2.5 text-sm">
+          <span class="w-6 shrink-0 text-right tabular-nums text-ink-muted">
+            <%= entry.grid_position %>
+          </span>
+          <span class="inline-block h-3 w-1 shrink-0 rounded-sm"
+                style="background-color: <%= entry.constructor.team_color %>"
+                aria-hidden="true"></span>
+          <span class="min-w-0 flex-1 truncate">
+            <%= entry.driver.full_name %>
+            <span class="text-ink-muted"><%= entry.constructor.name %></span>
+          </span>
+          <span class="shrink-0 tabular-nums text-ink-muted">
+            <%= entry.pace_rating&.to_f&.round %>
+          </span>
         </li>
       <% end %>
     </ol>

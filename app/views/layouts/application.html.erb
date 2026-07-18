@@ -18,35 +18,35 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <header class="border-b border-slate-800">
-      <nav class="container mx-auto px-5 py-4 flex items-center justify-between">
-        <%= link_to root_path, class: "text-xl font-bold tracking-tight" do %>
-          <span class="text-red-500">F1</span> AI Predictions
+  <body class="min-h-screen bg-plane text-ink antialiased">
+    <header class="border-b border-hairline">
+      <nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+        <%= link_to root_path, class: "text-lg font-semibold tracking-tight" do %>
+          <span class="text-accent">F1</span> Predictions
         <% end %>
 
-        <div class="text-sm text-slate-400 flex items-center gap-4">
+        <div class="flex items-center gap-4 text-sm text-ink-muted">
           <% if user_signed_in? %>
-            <span><%= current_user.email %><%= " · premium" if current_user.premium? %></span>
+            <span><%= current_user.email %></span>
             <%= button_to "Sign out", destroy_user_session_path, method: :delete,
-                  class: "text-slate-300 hover:text-white" %>
+                  class: "hover:text-ink" %>
           <% else %>
-            <%= link_to "Sign in", new_user_session_path, class: "hover:text-white" %>
-            <%= link_to "Sign up", new_user_registration_path, class: "hover:text-white" %>
+            <%= link_to "Sign in", new_user_session_path, class: "hover:text-ink" %>
+            <%= link_to "Sign up", new_user_registration_path, class: "hover:text-ink" %>
           <% end %>
         </div>
       </nav>
     </header>
 
     <% if flash[:notice] || flash[:alert] %>
-      <div class="container mx-auto px-5 pt-4">
-        <p class="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm">
+      <div class="mx-auto max-w-6xl px-5 pt-5">
+        <p class="rounded-lg border border-hairline bg-surface px-4 py-2.5 text-sm text-ink-2">
           <%= flash[:notice] || flash[:alert] %>
         </p>
       </div>
     <% end %>
 
-    <main class="container mx-auto px-5 py-8">
+    <main class="mx-auto max-w-6xl px-5 py-8">
       <%= yield %>
     </main>
   </body>

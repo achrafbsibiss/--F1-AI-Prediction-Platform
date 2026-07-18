@@ -1,0 +1,14 @@
+<% if @race&.demo_data? %>
+  <div class="mt-6 flex gap-3 rounded-lg border border-hairline bg-surface px-4 py-3">
+    <span class="mt-0.5 shrink-0 text-warning" aria-hidden="true">&#9888;</span>
+    <div class="text-sm">
+      <p class="font-medium text-ink-2">Demo data &mdash; not a real forecast</p>
+      <p class="mt-1 text-ink-muted">
+        The starting grid below was made up for this demo, and the driver lineup is
+        hardcoded from the 2025 season. Grid position is the model's strongest input,
+        so these percentages mostly reflect that invented grid. Real entries and
+        qualifying results are not fetched yet.
+      </p>
+    </div>
+  </div>
+<% end %>

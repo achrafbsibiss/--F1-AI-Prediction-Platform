@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* Dark-only by choice: this is a race-timing style product, and committing to
+   one surface keeps the chart colors validated against a single background.
+
+   Chart tokens follow the data-viz method: win probability is a *magnitude*,
+   so it gets one hue (accent) with the rest of the field in the de-emphasis
+   gray, rather than 20 team colors competing for attention. Team identity is
+   carried by a chip beside the team name, never by the bar. */
+@theme {
+  --color-plane: #0d0d0d; /* page background */
+  --color-surface: #141417; /* card background */
+  --color-surface-2: #1c1c20; /* inset / track */
+  --color-hairline: #2c2c2a;
+
+  --color-ink: #ffffff;
+  --color-ink-2: #c3c2b7;
+  --color-ink-muted: #898781;
+
+  --color-accent: #3987e5; /* the leader / single data hue */
+  --color-deemph: #898781; /* every other bar */
+
+  --color-warning: #fab219;
+  --color-good: #0ca30c;
+}

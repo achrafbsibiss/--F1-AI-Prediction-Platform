@@ -67,5 +67,6 @@ end
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
-  gem "selenium-webdriver"
+  # 4.36+ uses Ruby 3.4 anonymous-kwargs syntax and won't parse on 3.3.
+  gem "selenium-webdriver", "< 4.36"
 end

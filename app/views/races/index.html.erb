@@ -1,22 +1,57 @@
 <% content_for :title, "Races" %>
 
-<h1 class="text-2xl font-bold mb-6">Race calendar</h1>
-
-<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-  <% @races.each do |race| %>
-    <%= link_to race_path(race), class: "block rounded-xl border border-slate-800 bg-slate-900 p-5 hover:border-slate-600" do %>
-      <p class="text-xs uppercase tracking-wide text-slate-500">
-        Round <%= race.round %> · <%= race.season %>
-      </p>
-      <h2 class="mt-1 text-lg font-semibold"><%= race.name %></h2>
-      <p class="mt-1 text-sm text-slate-400"><%= race.circuit.name %></p>
-      <p class="mt-3 text-sm text-slate-500">
-        <%= race.starts_at&.strftime("%d %b %Y, %H:%M") || "TBC" %>
-      </p>
-    <% end %>
-  <% end %>
+<div class="max-w-2xl">
+  <h1 class="text-3xl font-semibold">Race predictions</h1>
+  <p class="mt-2 text-ink-2">
+    Pick a race to see each driver's chance of winning, predicted by a model trained
+    on 111 past Grands Prix.
+  </p>
 </div>
 
+<% next_race = @races.find { |race| race.status != "finished" } %>
+
+<% if next_race %>
+  <section class="mt-8 rounded-xl border border-hairline bg-surface p-6">
+    <p class="text-xs uppercase tracking-wide text-ink-muted">Next race</p>
+
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-semibold"><%= next_race.name %></h2>
+        <p class="mt-1 text-ink-2"><%= next_race.circuit.name %>, <%= next_race.circuit.country %></p>
+        <p class="mt-1 text-sm text-ink-muted">
+          <%= next_race.starts_at&.strftime("%A %d %B, %H:%M") || "Time to be confirmed" %>
+        </p>
+      </div>
+
+      <%= link_to "View prediction", race_path(next_race),
+            class: "rounded-lg bg-accent px-4 py-2 font-semibold text-white hover:brightness-110" %>
+    </div>
+  </section>
+<% end %>
+
+<% other_races = @races - [ next_race ] %>
+
+<% if other_races.any? %>
+  <h2 class="mt-10 mb-3 text-sm uppercase tracking-wide text-ink-muted">All races</h2>
+
+  <ul class="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline bg-surface">
+    <% other_races.each do |race| %>
+      <li>
+        <%= link_to race_path(race), class: "flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 hover:bg-surface-2" do %>
+          <span class="w-16 shrink-0 text-xs text-ink-muted">
+            R<%= race.round %> · <%= race.season %>
+          </span>
+          <span class="min-w-0 flex-1 font-medium"><%= race.name %></span>
+          <span class="text-sm text-ink-muted"><%= race.circuit.name %></span>
+          <%= render "races/status_pill", status: race.status %>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
 <% if @races.empty? %>
-  <p class="text-slate-400">No races yet. Run <code>bin/rails db:seed</code>.</p>
+  <p class="mt-8 rounded-xl border border-hairline bg-surface px-5 py-8 text-center text-ink-muted">
+    No races loaded. Run <code class="text-ink-2">bin/rails db:seed</code> to add a demo race.
+  </p>
 <% end %>

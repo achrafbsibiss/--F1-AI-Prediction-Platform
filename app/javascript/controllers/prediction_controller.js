@@ -1,17 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Animates probability bars from zero when a fresh prediction is streamed in.
+// Grows the probability bars from zero so a streamed-in prediction reads as a
+// change rather than a silent swap. Skipped when the visitor prefers reduced motion.
 export default class extends Controller {
-  static targets = ["bar", "row"]
-  static values = { animate: Boolean }
+  static targets = ["bar"]
 
   connect() {
-    if (!this.animateValue) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
     this.barTargets.forEach((bar) => {
-      const target = bar.style.width
+      const width = bar.style.width
       bar.style.width = "0%"
-      requestAnimationFrame(() => { bar.style.width = target })
+      requestAnimationFrame(() => { bar.style.width = width })
     })
   }
 }

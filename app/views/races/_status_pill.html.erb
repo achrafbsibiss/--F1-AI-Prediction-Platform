@@ -1,0 +1,10 @@
+<%
+  classes = {
+    "scheduled" => "border-hairline text-ink-muted",
+    "live" => "border-good text-good",
+    "finished" => "border-hairline text-ink-2"
+  }.fetch(status, "border-hairline text-ink-muted")
+%>
+<span class="rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide <%= classes %>">
+  <%= status %>
+</span>

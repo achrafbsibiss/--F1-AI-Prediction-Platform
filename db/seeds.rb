@@ -85,7 +85,8 @@ ActiveRecord::Base.transaction do
     name: "Belgian Grand Prix",
     circuit: circuit,
     starts_at: Time.zone.now.change(hour: 15, min: 0),
-    status: "scheduled"
+    status: "scheduled",
+    demo_data: true
   )
 
   RaceSession::KINDS.each_with_index do |kind, i|

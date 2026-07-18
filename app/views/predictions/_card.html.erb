@@ -1,36 +1,130 @@
+<%
+  leader = predictions.first
+  podium_by_driver = race.predictions.of_type("podium").index_by(&:driver_id)
+  entries_by_driver = race.race_entries.index_by(&:driver_id)
+%>
 <section id="race_<%= race.id %>_prediction_card"
-         class="rounded-xl border border-slate-800 bg-slate-900 p-5"
-         data-controller="prediction"
-         data-prediction-animate-value="true">
-  <div class="mb-4 flex items-baseline justify-between">
-    <h2 class="text-lg font-semibold">Winner probability</h2>
+         class="rounded-xl border border-hairline bg-surface"
+         data-controller="prediction">
+  <header class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-6 py-5">
+    <div>
+      <h2 class="text-lg font-semibold">Who wins?</h2>
+      <p class="mt-1 text-sm text-ink-muted">
+        Chance of taking victory, for every car on the grid.
+      </p>
+    </div>
+
     <% if predictions.any? %>
-      <span class="text-xs text-slate-500">
-        <%= predictions.first.model_version %> ·
-        <%= time_ago_in_words(predictions.first.updated_at) %> ago
-      </span>
+      <p class="text-right text-xs text-ink-muted">
+        model <%= leader.model_version %><br>
+        updated <%= time_ago_in_words(leader.updated_at) %> ago
+      </p>
     <% end %>
-  </div>
+  </header>
 
   <% if predictions.empty? %>
-    <p class="text-slate-400">
-      No prediction yet. Generate one to call the model.
-    </p>
+    <div class="px-6 py-12 text-center">
+      <p class="text-ink-2">No prediction yet.</p>
+      <p class="mx-auto mt-2 max-w-md text-sm text-ink-muted">
+        Generating one sends the starting grid and each driver's form rating to the
+        model, then fills this card in. It takes about a second.
+      </p>
+      <% if user_signed_in? %>
+        <div class="mt-5">
+          <%= button_to "Generate prediction", race_prediction_path(race),
+                class: "rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:brightness-110" %>
+        </div>
+      <% end %>
+    </div>
   <% else %>
-    <ol class="space-y-3">
-      <% predictions.each do |prediction| %>
-        <li data-prediction-target="row">
-          <div class="flex items-baseline justify-between text-sm">
-            <span class="font-medium"><%= prediction.driver.full_name %></span>
-            <span class="tabular-nums text-slate-300"><%= prediction.percentage %>%</span>
+    <!-- Hero figure: the one number this card exists to deliver. -->
+    <div class="border-b border-hairline px-6 py-6">
+      <p class="text-xs uppercase tracking-wide text-ink-muted">Most likely winner</p>
+      <div class="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span class="text-5xl font-semibold leading-none text-accent"><%= leader.percentage %>%</span>
+        <span class="text-xl font-medium"><%= leader.driver.full_name %></span>
+      </div>
+      <p class="mt-2 text-sm text-ink-muted">
+        <span class="mr-1 inline-block h-2 w-2 rounded-full align-middle"
+              style="background-color: <%= leader.driver.constructor.team_color %>"></span>
+        <%= leader.driver.constructor.name %>
+        · starts P<%= entries_by_driver[leader.driver_id]&.grid_position || "?" %>
+        · <%= podium_by_driver[leader.driver_id]&.percentage || 0 %>% chance of a podium
+      </p>
+    </div>
+
+    <!-- Full field. Every value is on-screen as text, so this doubles as the table view. -->
+    <ol class="divide-y divide-hairline">
+      <% predictions.each_with_index do |prediction, index| %>
+        <%
+          driver = prediction.driver
+          entry = entries_by_driver[driver.id]
+          podium = podium_by_driver[driver.id]
+          leading = index.zero?
+        %>
+        <li class="px-6 py-3">
+          <div class="flex items-center gap-3">
+            <span class="w-5 shrink-0 text-right text-xs tabular-nums text-ink-muted">
+              <%= index + 1 %>
+            </span>
+
+            <span class="inline-block h-3 w-1 shrink-0 rounded-sm"
+                  style="background-color: <%= driver.constructor.team_color %>"
+                  aria-hidden="true"></span>
+
+            <span class="min-w-0 flex-1 truncate text-sm <%= leading ? "font-semibold" : "" %>">
+              <%= driver.full_name %>
+              <span class="text-ink-muted"><%= driver.constructor.name %></span>
+            </span>
+
+            <span class="shrink-0 text-xs tabular-nums text-ink-muted">
+              P<%= entry&.grid_position || "?" %>
+            </span>
+
+            <span class="w-14 shrink-0 text-right text-sm tabular-nums <%= leading ? "font-semibold text-ink" : "text-ink-2" %>">
+              <%= prediction.percentage %>%
+            </span>
           </div>
-          <div class="mt-1 h-2 w-full overflow-hidden rounded bg-slate-800">
-            <div class="h-full rounded transition-all duration-700 ease-out"
-                 style="width: <%= prediction.percentage %>%; background-color: <%= prediction.driver.constructor.team_color %>"
-                 data-prediction-target="bar"></div>
+
+          <div class="mt-2 flex items-center gap-3">
+            <!-- Bar caps at 8px and rounds only at the data end, per the mark spec.
+                 min-width keeps a long-shot's bar visible instead of rendering
+                 an empty track that reads as missing data. -->
+            <div class="h-2 flex-1 overflow-hidden rounded-l-sm bg-surface-2">
+              <div class="h-full min-w-0.5 rounded-r-sm transition-[width] duration-700 ease-out <%= leading ? "bg-accent" : "bg-deemph" %>"
+                   style="width: <%= [ prediction.percentage, 100 ].min %>%"
+                   data-prediction-target="bar"></div>
+            </div>
+            <span class="w-28 shrink-0 text-right text-xs tabular-nums text-ink-muted">
+              podium <%= podium&.percentage || 0 %>%
+            </span>
           </div>
         </li>
       <% end %>
     </ol>
+
+    <footer class="border-t border-hairline px-6 py-4">
+      <details class="group">
+        <summary class="cursor-pointer text-sm text-ink-2 hover:text-ink">
+          How is this calculated?
+        </summary>
+        <div class="mt-3 space-y-2 text-sm text-ink-muted">
+          <p>
+            A logistic regression trained on 111 real races (2019, 2021&ndash;2024) scores
+            each car on five inputs: starting slot, form rating, where that slot sits in
+            the field, the pace gap to the quickest car, and whether it starts on the front row.
+          </p>
+          <p>
+            Scores are then rescaled so win chances across the field add up to 100%,
+            and podium chances add up to 300% &mdash; three places available.
+          </p>
+          <p>
+            <strong class="text-ink-2">Starting position dominates.</strong> A car
+            starting at the front is favoured because that is what the history says;
+            the model knows nothing about this weekend's weather, upgrades, or reliability.
+          </p>
+        </div>
+      </details>
+    </footer>
   <% end %>
 </section>
