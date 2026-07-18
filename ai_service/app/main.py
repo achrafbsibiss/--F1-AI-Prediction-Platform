@@ -36,6 +36,30 @@ def health() -> dict:
     return {"status": "ok", "model_loaded": ARTIFACT_PATH.exists()}
 
 
+@app.get("/data/season/{season}")
+def season_calendar(season: int) -> dict:
+    """The published calendar. Rails ingests this to create races."""
+    from data.fastf1_loader import season_schedule
+
+    try:
+        return {"season": season, "races": season_schedule(season)}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"FastF1 lookup failed: {exc}")
+
+
+@app.get("/data/race/{season}/{rnd}")
+def race_entries(season: int, rnd: int) -> dict:
+    """Entry list for one race — drivers, teams, grid slots and form ratings."""
+    from data.fastf1_loader import race_entry_list
+
+    try:
+        return race_entry_list(season, rnd)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"FastF1 lookup failed: {exc}")
+
+
 @app.post("/predict/race", response_model=RacePredictionResponse)
 def predict_race(request: RacePredictionRequest) -> RacePredictionResponse:
     model = get_model()

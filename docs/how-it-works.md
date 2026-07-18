@@ -121,7 +121,7 @@ rescales them:
 
 ```bash
 cd ai_service
-python -m training.train_race_model --seasons 2019 2021 2022 2023 2024
+python -m training.train_race_model --seasons 2022 2023 2024 2025 2026
 ```
 
 Bump `MODEL_VERSION` in `race_model.py` when the features or estimator change.
@@ -223,6 +223,58 @@ needed.
 entries from `laps` and re-runs the pipeline. The upsert and the broadcast
 target already handle repeated writes to the same rows.
 
-**Real data ingestion:** `ai_service/data/fastf1_loader.py` already reads results
-from FastF1 for training. `FetchF1DataJob` — the piece that writes them into
-Postgres as races, entries and laps — does not exist yet.
+**Lap-level ingestion:** the `laps` table exists but nothing fills it. The
+loader already has the FastF1 session handle; it needs a `session.load(laps=True)`
+path and an endpoint alongside the entry-list one.
+
+---
+
+## 9. Data ingestion
+
+Rails cannot call FastF1 — that is Python. So the FastAPI service doubles as the
+F1 data gateway, and Rails only maps JSON onto tables.
+
+```
+rake f1:race[2026,10]
+   → F1DataService
+      → PythonAiService#race_entries
+         → GET /data/race/2026/10
+            → fastf1_loader.race_entry_list
+               → FastF1 (cached on disk)
+   ← constructors, drivers, circuit, race, race_entries (all upserted)
+```
+
+Two endpoints back this:
+
+| Endpoint | Returns |
+| -------- | ------- |
+| `GET /data/season/{year}` | The calendar — round, name, country, date |
+| `GET /data/race/{year}/{round}` | Entry list: driver, team, number, grid slot, form rating |
+
+### Why form is computed in Python
+
+`pace` is not a raw FastF1 field — it is derived (mean finishing position over
+the last five races, mapped onto 0–100 by `form_from_mean_finish`). Both the
+training frame and the live entry list call **that same function**. If Rails
+recomputed it, the two definitions would drift and the model would be scored on
+a feature it was never trained on.
+
+### Idempotency
+
+Every write is an upsert on a natural key — `drivers.code`, `(season, round)`,
+`(race_id, driver_id)`. Re-importing after qualifying updates grid slots in
+place. Drivers no longer on the entry list are removed from that race, so a
+mid-season seat swap doesn't leave a ghost entry.
+
+Note that `import_race_entries` reassigns `driver.constructor` on every import:
+the schema models a driver's team as a single current value, so a mid-season
+move rewrites history. If that matters, move the association onto `RaceEntry`
+(which already carries `constructor_id`) and drop it from `Driver`.
+
+### Grid provenance
+
+`races.grid_source` records where the starting order came from, because before
+qualifying there is no grid and the loader has to estimate one from form. The
+race page renders a warning in that case. A prediction built on an estimated
+grid is a much weaker claim than one built on a real grid, and the UI is not
+allowed to blur that distinction.

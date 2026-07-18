@@ -4,6 +4,9 @@ class PythonAiService
   class Unavailable < Error; end
 
   TIMEOUT = 15
+  # FastF1 downloads and caches a whole season on a cold call, which is far
+  # slower than inference against an already-loaded model.
+  DATA_TIMEOUT = 300
 
   def initialize(base_url: Rails.configuration.ai_service_url)
     @base_url = base_url
@@ -20,9 +23,30 @@ class PythonAiService
     post("/predict/race", payload)
   end
 
+  # The service also fronts FastF1 — it is the only process that reads F1 data.
+  def season_calendar(season)
+    get("/data/season/#{season}")
+  end
+
+  def race_entries(season, round)
+    get("/data/race/#{season}/#{round}")
+  end
+
   private
 
   attr_reader :base_url
+
+  def get(path, timeout: DATA_TIMEOUT)
+    response = connection.get(path) { |request| request.options.timeout = timeout }
+
+    unless response.success?
+      raise Error, "AI service #{path} returned #{response.status}: #{response.body}"
+    end
+
+    response.body
+  rescue Faraday::ConnectionFailed, Faraday::TimeoutError => e
+    raise Unavailable, "AI service unreachable at #{base_url}: #{e.message}"
+  end
 
   def post(path, payload)
     response = connection.post(path, payload)

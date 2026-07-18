@@ -12,4 +12,13 @@ class Driver < ApplicationRecord
   def last_name
     full_name.split.last
   end
+
+  # Two-letter monogram for the generated avatar (F1 portraits are licensed
+  # media, so nothing is fetched unless image_url is explicitly populated).
+  def initials
+    parts = full_name.split
+    return full_name.first(2).upcase if parts.one?
+
+    "#{parts.first[0]}#{parts.last[0]}".upcase
+  end
 end

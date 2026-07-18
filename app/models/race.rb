@@ -19,6 +19,12 @@ class Race < ApplicationRecord
     "#{season} #{name}"
   end
 
+  # True once qualifying has set the grid. Before that the running order is
+  # inferred from form, and the UI has to say so.
+  def real_grid?
+    grid_source.in?(%w[qualifying race])
+  end
+
   # Turbo Stream channel the prediction card broadcasts on.
   def prediction_stream
     "race_#{id}_predictions"

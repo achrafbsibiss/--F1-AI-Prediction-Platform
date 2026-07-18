@@ -15,8 +15,9 @@ This repository is a **working vertical slice**, not the finished platform.
 
 **Built and verified end to end:**
 
-- Race winner + podium probabilities for a full 20-car field
-- Model trained on real historical results (2179 driver-rows / 111 races, via FastF1)
+- Race winner + podium probabilities for the full 22-car field
+- **Real data ingestion** — calendar, entry lists and grids pulled from FastF1
+- Model trained on real results (2021 driver-rows / 101 races, 2022–2026)
 - Rails → FastAPI → Postgres → Turbo Stream broadcast pipeline
 - Devise auth with `user` / `premium_user` / `admin` roles
 - Sidekiq queues and the Sidekiq web UI (admin only)
@@ -25,12 +26,12 @@ This repository is a **working vertical slice**, not the finished platform.
 
 - Qualifying, sprint and championship models
 - Live per-lap prediction updates
-- The FastF1 ingestion job (`FetchF1DataJob`) — race data is seeded, not fetched
+- Lap/telemetry ingestion (the `laps` table exists but nothing fills it)
 - JWT API endpoints, premium feature gating, test suite
 
-The seeded race and grid are **demo fixtures**, described under
-[Seed data](#seed-data). Do not read real-world meaning into predictions made
-against them.
+Nothing in the app invents drivers, teams or grids. Where a real grid does not
+exist yet — before qualifying — the running order is estimated from form and the
+race page says so.
 
 ---
 
@@ -73,7 +74,7 @@ pip install -r requirements.txt
 ```bash
 # Real historical data via FastF1. The first run downloads a few hundred MB
 # into ai_service/data/fastf1_cache and takes several minutes.
-python -m training.train_race_model --seasons 2019 2021 2022 2023 2024
+python -m training.train_race_model --seasons 2022 2023 2024 2025 2026
 
 # Offline placeholder — trains on generated data, useful only to boot the service.
 python -m training.train_race_model --synthetic
@@ -127,20 +128,45 @@ PredictionService.new(Race.first).generate_race_prediction
 
 ---
 
-## Seed data
+## Importing race data
 
-`db/seeds.rb` creates one race — the Belgian Grand Prix at Spa-Francorchamps,
-dated **today**, so there is always something to predict.
+All F1 data comes from FastF1 via the Python service — **the AI service must be
+running** for any of this, including `db:seed`.
 
-Two caveats, both deliberate:
+```bash
+# The season calendar (fast — one schedule lookup)
+bin/rails "f1:calendar[2026]"
 
-- The **driver and team lineup is the 2025 season**, hardcoded. It is not
-  fetched, and it is not checked against the current season.
-- The **starting grid is invented**, not a real qualifying result. Grid slot is
-  the model's strongest feature, so the output reflects that invented grid and
-  nothing more.
+# One race's entry list, grid and form ratings
+bin/rails "f1:race[2026,10]"
 
-Replace both with real data before treating any prediction as meaningful.
+# Or just the next upcoming race
+bin/rails "f1:next[2026]"
+```
+
+`db:seed` creates the demo logins, then runs the calendar import plus the next
+race automatically.
+
+### Where the grid comes from
+
+Each race records a `grid_source`, and the UI renders it honestly:
+
+| `grid_source` | Meaning |
+| ------------- | ------- |
+| `qualifying` | Real grid from the qualifying session |
+| `race` | Real grid, taken from a completed race |
+| `form_estimate` | **Qualifying hasn't run.** Order inferred from recent form; the page shows a warning |
+
+Re-run the import after qualifying to replace an estimate with the real grid,
+then regenerate the prediction — the numbers move a lot, because grid slot is
+the model's strongest feature.
+
+### Driver photos
+
+`drivers.image_url` is left null by the importer. Official F1 portraits are
+copyrighted and are not fetched; the UI falls back to a generated initials
+avatar in team colors. Populate `image_url` yourself with images you are
+licensed to use.
 
 ---
 
@@ -156,12 +182,15 @@ Replace both with real data before treating any prediction as meaningful.
 ```
 app/
   controllers/   races, races/predictions
-  jobs/          generate_race_prediction_job.rb
+  jobs/          generate_race_prediction_job.rb, fetch_f1_data_job.rb
   models/        race, driver, constructor, circuit, race_entry,
                  race_session, lap, prediction, user
-  services/      python_ai_service.rb, prediction_service.rb
-  views/         races/, predictions/_card.html.erb
+  services/      python_ai_service.rb, prediction_service.rb,
+                 f1_data_service.rb
+  views/         races/, predictions/_card.html.erb, drivers/_avatar.html.erb
   javascript/controllers/  prediction_controller.js
+
+lib/tasks/f1.rake    calendar / race / next import tasks
 
 ai_service/
   app/           main.py (FastAPI), schemas.py

@@ -1,0 +1,25 @@
+<% if @race&.demo_data? %>
+  <div class="mt-6 flex gap-3 rounded-lg border border-hairline bg-surface px-4 py-3">
+    <span class="mt-0.5 shrink-0 text-warning" aria-hidden="true">&#9888;</span>
+    <div class="text-sm">
+      <p class="font-medium text-ink-2">Demo data &mdash; not a real forecast</p>
+      <p class="mt-1 text-ink-muted">
+        This race's grid and entry list are fixtures, not fetched results.
+        Run <code class="text-ink-2">rake 'f1:race[<%= @race.season %>,<%= @race.round %>]'</code>
+        to replace them with real data.
+      </p>
+    </div>
+  </div>
+<% elsif @race && !@race.real_grid? %>
+  <div class="mt-6 flex gap-3 rounded-lg border border-hairline bg-surface px-4 py-3">
+    <span class="mt-0.5 shrink-0 text-warning" aria-hidden="true">&#9888;</span>
+    <div class="text-sm">
+      <p class="font-medium text-ink-2">Qualifying hasn't run yet</p>
+      <p class="mt-1 text-ink-muted">
+        There is no starting grid for this race, so the order below is estimated from
+        each driver's recent form. Grid position is the model's strongest input &mdash;
+        expect these numbers to move once qualifying sets the real grid.
+      </p>
+    </div>
+  </div>
+<% end %>

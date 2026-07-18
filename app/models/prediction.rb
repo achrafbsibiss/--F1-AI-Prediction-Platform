@@ -13,4 +13,9 @@ class Prediction < ApplicationRecord
   def percentage
     (probability * 100).round(1)
   end
+
+  # "0.0%" reads as "impossible" when it really means "rounds to nothing".
+  def display_percentage
+    percentage.positive? ? "#{percentage}%" : "<0.1%"
+  end
 end

@@ -30,14 +30,20 @@
   <% end %>
 </div>
 
-<!-- KPI row: circuit facts, which are the physical context for the numbers below. -->
+<!-- KPI row: only the facts we actually hold. The importer fills circuit name and
+     country; lap count and length aren't in the FastF1 schedule, so those tiles
+     appear only once something populates them. -->
+<%
+  tiles = [
+    [ "Round", "#{@race.round} of 22" ],
+    [ "Cars entered", @entries.size ],
+    ([ "Laps", @race.circuit.laps ] if @race.circuit.laps),
+    ([ "Lap length", "#{@race.circuit.length_km} km" ] if @race.circuit.length_km),
+    [ "Grid", @race.real_grid? ? "Set" : "Estimated" ]
+  ].compact.first(4)
+%>
 <dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-  <% [
-       [ "Laps", @race.circuit.laps ],
-       [ "Lap length", "#{@race.circuit.length_km} km" ],
-       [ "Corners", @race.circuit.corners ],
-       [ "Cars entered", @entries.size ]
-     ].each do |label, value| %>
+  <% tiles.each do |label, value| %>
     <div class="rounded-lg border border-hairline bg-surface px-4 py-3">
       <dt class="text-xs uppercase tracking-wide text-ink-muted"><%= label %></dt>
       <dd class="mt-1 text-xl font-semibold"><%= value %></dd>
@@ -45,7 +51,7 @@
   <% end %>
 </dl>
 
-<%= render "shared/demo_data_notice" %>
+<%= render "shared/data_notice" %>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-3">
   <div class="lg:col-span-2">
@@ -69,9 +75,10 @@
           <span class="inline-block h-3 w-1 shrink-0 rounded-sm"
                 style="background-color: <%= entry.constructor.team_color %>"
                 aria-hidden="true"></span>
+          <%= render "drivers/avatar", driver: entry.driver, size: "h-7 w-7", text_size: "text-[10px]" %>
           <span class="min-w-0 flex-1 truncate">
             <%= entry.driver.full_name %>
-            <span class="text-ink-muted"><%= entry.constructor.name %></span>
+            <span class="text-ink-muted"><%= entry.constructor.short_name %></span>
           </span>
           <span class="shrink-0 tabular-nums text-ink-muted">
             <%= entry.pace_rating&.to_f&.round %>

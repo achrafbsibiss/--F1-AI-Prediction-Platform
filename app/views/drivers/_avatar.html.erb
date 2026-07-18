@@ -1,0 +1,17 @@
+<%
+  size ||= "h-9 w-9"
+  text_size ||= "text-xs"
+%>
+<% if driver.image_url.present? %>
+  <%= image_tag driver.image_url,
+        alt: driver.full_name,
+        loading: "lazy",
+        class: "#{size} shrink-0 rounded-full object-cover ring-1 ring-hairline" %>
+<% else %>
+  <span class="<%= size %> <%= text_size %> flex shrink-0 items-center justify-center rounded-full font-semibold text-ink ring-1 ring-hairline"
+        style="background-color: <%= driver.constructor.team_color %>26"
+        title="<%= driver.full_name %>"
+        aria-hidden="true">
+    <%= driver.initials %>
+  </span>
+<% end %>

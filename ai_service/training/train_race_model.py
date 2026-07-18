@@ -1,6 +1,6 @@
 """Train the race outcome model.
 
-    python -m training.train_race_model --seasons 2021 2022 2023 2024
+    python -m training.train_race_model --seasons 2022 2023 2024 2025 2026
 
 Pulls real results through FastF1. With --synthetic (or when FastF1 is
 unreachable) it falls back to a generated dataset so the service can boot
@@ -83,7 +83,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--seasons", type=int, nargs="+", default=[2019, 2021, 2022, 2023, 2024]
+        "--seasons", type=int, nargs="+", default=[2022, 2023, 2024, 2025, 2026]
     )
     parser.add_argument("--synthetic", action="store_true", help="skip FastF1 entirely")
     args = parser.parse_args()
