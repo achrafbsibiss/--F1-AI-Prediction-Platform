@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_18_180052) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_18_190315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -44,6 +44,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_180052) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "image_url"
+    t.string "image_attribution"
+    t.string "image_license"
+    t.string "image_source_url"
     t.index ["code"], name: "index_drivers_on_code", unique: true
     t.index ["constructor_id"], name: "index_drivers_on_constructor_id"
   end

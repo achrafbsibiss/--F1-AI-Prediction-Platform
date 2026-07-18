@@ -19,6 +19,15 @@ namespace :f1 do
     end
   end
 
+  desc "Fetch CC-licensed driver portraits from Wikimedia Commons"
+  task portraits: :environment do
+    imported = DriverPortraitService.new.import_all
+    puts "Portraits: #{imported.size}/#{Driver.count} drivers."
+
+    missing = Driver.where(image_url: nil).pluck(:code)
+    puts "No usable image for: #{missing.join(", ")}" if missing.any?
+  end
+
   desc "Import the next upcoming race of a season: rake 'f1:next[2026]'"
   task :next, [ :season ] => :environment do |_task, args|
     season = (args[:season] || Date.current.year).to_i
