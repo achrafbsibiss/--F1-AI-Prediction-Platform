@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "F1" %></title>
+    <title><%= content_for(:title) || "F1 AI Predictions" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
@@ -18,8 +18,35 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-slate-950 text-slate-100 min-h-screen">
+    <header class="border-b border-slate-800">
+      <nav class="container mx-auto px-5 py-4 flex items-center justify-between">
+        <%= link_to root_path, class: "text-xl font-bold tracking-tight" do %>
+          <span class="text-red-500">F1</span> AI Predictions
+        <% end %>
+
+        <div class="text-sm text-slate-400 flex items-center gap-4">
+          <% if user_signed_in? %>
+            <span><%= current_user.email %><%= " · premium" if current_user.premium? %></span>
+            <%= button_to "Sign out", destroy_user_session_path, method: :delete,
+                  class: "text-slate-300 hover:text-white" %>
+          <% else %>
+            <%= link_to "Sign in", new_user_session_path, class: "hover:text-white" %>
+            <%= link_to "Sign up", new_user_registration_path, class: "hover:text-white" %>
+          <% end %>
+        </div>
+      </nav>
+    </header>
+
+    <% if flash[:notice] || flash[:alert] %>
+      <div class="container mx-auto px-5 pt-4">
+        <p class="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm">
+          <%= flash[:notice] || flash[:alert] %>
+        </p>
+      </div>
+    <% end %>
+
+    <main class="container mx-auto px-5 py-8">
       <%= yield %>
     </main>
   </body>

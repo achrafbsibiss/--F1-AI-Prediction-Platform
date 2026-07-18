@@ -1,0 +1,22 @@
+<% content_for :title, "Races" %>
+
+<h1 class="text-2xl font-bold mb-6">Race calendar</h1>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <% @races.each do |race| %>
+    <%= link_to race_path(race), class: "block rounded-xl border border-slate-800 bg-slate-900 p-5 hover:border-slate-600" do %>
+      <p class="text-xs uppercase tracking-wide text-slate-500">
+        Round <%= race.round %> · <%= race.season %>
+      </p>
+      <h2 class="mt-1 text-lg font-semibold"><%= race.name %></h2>
+      <p class="mt-1 text-sm text-slate-400"><%= race.circuit.name %></p>
+      <p class="mt-3 text-sm text-slate-500">
+        <%= race.starts_at&.strftime("%d %b %Y, %H:%M") || "TBC" %>
+      </p>
+    <% end %>
+  <% end %>
+</div>
+
+<% if @races.empty? %>
+  <p class="text-slate-400">No races yet. Run <code>bin/rails db:seed</code>.</p>
+<% end %>

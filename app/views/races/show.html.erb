@@ -1,0 +1,42 @@
+<% content_for :title, @race.to_s %>
+
+<%= turbo_stream_from @race.prediction_stream %>
+
+<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="text-xs uppercase tracking-wide text-slate-500">
+      Round <%= @race.round %> · <%= @race.season %> · <%= @race.status %>
+    </p>
+    <h1 class="text-3xl font-bold"><%= @race.name %></h1>
+    <p class="mt-1 text-slate-400">
+      <%= @race.circuit.name %>, <%= @race.circuit.country %>
+      · <%= @race.circuit.laps %> laps · <%= @race.circuit.length_km %> km
+    </p>
+  </div>
+
+  <% if user_signed_in? %>
+    <%= button_to "Generate prediction", race_prediction_path(@race),
+          class: "rounded-lg bg-red-600 px-4 py-2 font-semibold hover:bg-red-500" %>
+  <% else %>
+    <%= link_to "Sign in to generate a prediction", new_user_session_path,
+          class: "text-sm text-slate-400 hover:text-white" %>
+  <% end %>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <%= render "predictions/card", race: @race, predictions: @predictions %>
+
+  <section class="rounded-xl border border-slate-800 bg-slate-900 p-5">
+    <h2 class="mb-4 text-lg font-semibold">Starting grid</h2>
+    <ol class="space-y-1 text-sm">
+      <% @entries.each do |entry| %>
+        <li class="flex items-center gap-3 py-1">
+          <span class="w-6 text-right text-slate-500"><%= entry.grid_position %></span>
+          <span class="h-4 w-1 rounded" style="background-color: <%= entry.constructor.team_color %>"></span>
+          <span class="font-medium"><%= entry.driver.full_name %></span>
+          <span class="text-slate-500"><%= entry.constructor.name %></span>
+        </li>
+      <% end %>
+    </ol>
+  </section>
+</div>

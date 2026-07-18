@@ -1,0 +1,36 @@
+<section id="race_<%= race.id %>_prediction_card"
+         class="rounded-xl border border-slate-800 bg-slate-900 p-5"
+         data-controller="prediction"
+         data-prediction-animate-value="true">
+  <div class="mb-4 flex items-baseline justify-between">
+    <h2 class="text-lg font-semibold">Winner probability</h2>
+    <% if predictions.any? %>
+      <span class="text-xs text-slate-500">
+        <%= predictions.first.model_version %> ·
+        <%= time_ago_in_words(predictions.first.updated_at) %> ago
+      </span>
+    <% end %>
+  </div>
+
+  <% if predictions.empty? %>
+    <p class="text-slate-400">
+      No prediction yet. Generate one to call the model.
+    </p>
+  <% else %>
+    <ol class="space-y-3">
+      <% predictions.each do |prediction| %>
+        <li data-prediction-target="row">
+          <div class="flex items-baseline justify-between text-sm">
+            <span class="font-medium"><%= prediction.driver.full_name %></span>
+            <span class="tabular-nums text-slate-300"><%= prediction.percentage %>%</span>
+          </div>
+          <div class="mt-1 h-2 w-full overflow-hidden rounded bg-slate-800">
+            <div class="h-full rounded transition-all duration-700 ease-out"
+                 style="width: <%= prediction.percentage %>%; background-color: <%= prediction.driver.constructor.team_color %>"
+                 data-prediction-target="bar"></div>
+          </div>
+        </li>
+      <% end %>
+    </ol>
+  <% end %>
+</section>

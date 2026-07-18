@@ -13,7 +13,7 @@ from typing import Dict, List, Sequence
 
 import joblib
 import numpy as np
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -50,15 +50,13 @@ def build_features(drivers: Sequence[DriverFeatures]) -> np.ndarray:
 
 
 def _new_pipeline() -> Pipeline:
+    # Logistic regression rather than a tree ensemble: a season yields only ~24
+    # winners, and trees produce a non-monotonic tail (a P13 car outranking a
+    # P5 car) on that little signal. A linear model stays ordered in grid/pace.
     return Pipeline(
         [
             ("scale", StandardScaler()),
-            (
-                "clf",
-                GradientBoostingClassifier(
-                    n_estimators=200, max_depth=3, learning_rate=0.05, random_state=42
-                ),
-            ),
+            ("clf", LogisticRegression(C=1.0, max_iter=1000, random_state=42)),
         ]
     )
 

@@ -82,7 +82,9 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seasons", type=int, nargs="+", default=[2022, 2023, 2024])
+    parser.add_argument(
+        "--seasons", type=int, nargs="+", default=[2019, 2021, 2022, 2023, 2024]
+    )
     parser.add_argument("--synthetic", action="store_true", help="skip FastF1 entirely")
     args = parser.parse_args()
 
