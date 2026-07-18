@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_18_195820) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_18_202229) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -24,6 +24,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_195820) do
     t.integer "laps"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "outline_points"
+    t.integer "outline_season"
     t.index ["name"], name: "index_circuits_on_name", unique: true
   end
 
@@ -92,6 +94,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_195820) do
     t.decimal "pace_rating", precision: 5, scale: 2
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "points"
     t.index ["constructor_id"], name: "index_race_entries_on_constructor_id"
     t.index ["driver_id"], name: "index_race_entries_on_driver_id"
     t.index ["race_id", "driver_id"], name: "index_race_entries_on_race_id_and_driver_id", unique: true

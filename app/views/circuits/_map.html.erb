@@ -1,0 +1,18 @@
+<%
+  # The outline is traced from car position telemetry, not copied from a
+  # published circuit diagram (those are copyrighted artwork).
+  classes ||= "h-32 w-full"
+%>
+<% if circuit.outline? %>
+  <svg viewBox="<%= circuit.outline_viewbox %>"
+       class="<%= classes %>"
+       fill="none"
+       role="img"
+       aria-label="Track layout of <%= circuit.name %>">
+    <polyline points="<%= circuit.outline_path %>"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round" />
+  </svg>
+<% end %>

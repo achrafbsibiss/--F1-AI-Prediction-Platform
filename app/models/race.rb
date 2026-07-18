@@ -25,6 +25,20 @@ class Race < ApplicationRecord
     grid_source.in?(%w[qualifying race])
   end
 
+  # Classified finishers, best first. Empty until the race has been run and
+  # re-imported.
+  def classified_entries
+    race_entries.where.not(finish_position: nil).order(:finish_position)
+  end
+
+  def result?
+    classified_entries.any?
+  end
+
+  def winner
+    classified_entries.first
+  end
+
   # Turbo Stream channel the prediction card broadcasts on.
   def prediction_stream
     "race_#{id}_predictions"

@@ -40,21 +40,38 @@
     <thead>
       <tr class="border-b border-hairline text-xs uppercase tracking-wide text-ink-muted">
         <th scope="col" class="w-16 px-4 py-2.5 text-left font-medium">Round</th>
+        <th scope="col" class="w-16 px-4 py-2.5 text-left font-medium">Circuit</th>
         <th scope="col" class="px-4 py-2.5 text-left font-medium">Grand Prix</th>
-        <th scope="col" class="px-4 py-2.5 text-left font-medium">Circuit</th>
-        <th scope="col" class="w-28 px-4 py-2.5 text-left font-medium">Date</th>
+        <th scope="col" class="px-4 py-2.5 text-left font-medium">Winner</th>
+        <th scope="col" class="w-24 px-4 py-2.5 text-left font-medium">Date</th>
         <th scope="col" class="w-24 px-4 py-2.5 text-right font-medium">Status</th>
       </tr>
     </thead>
 
     <tbody>
       <% @races.each do |race| %>
+        <% winner = @winners[race.id] %>
         <tr class="border-b border-hairline last:border-0 hover:bg-surface-2/50">
           <td class="px-4 py-2.5 tabular-nums text-ink-muted"><%= race.round %></td>
+          <td class="px-4 py-2">
+            <div class="text-ink-muted">
+              <%= render "circuits/map", circuit: race.circuit, classes: "h-9 w-12" %>
+            </div>
+          </td>
           <td class="px-4 py-2.5">
             <%= link_to race.name, race_path(race), class: "font-medium hover:text-accent" %>
+            <span class="block text-xs text-ink-muted"><%= race.circuit.name %></span>
           </td>
-          <td class="px-4 py-2.5 text-ink-muted"><%= race.circuit.name %></td>
+          <td class="px-4 py-2.5">
+            <% if winner %>
+              <span class="flex items-center gap-2">
+                <%= render "constructors/mark", constructor: winner.constructor %>
+                <span class="truncate"><%= winner.driver.full_name %></span>
+              </span>
+            <% else %>
+              <span class="text-ink-muted">&mdash;</span>
+            <% end %>
+          </td>
           <td class="px-4 py-2.5 tabular-nums text-ink-muted">
             <%= race.starts_at&.strftime("%d %b") || "TBC" %>
           </td>

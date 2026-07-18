@@ -19,6 +19,43 @@ namespace :f1 do
     end
   end
 
+  desc "Trace circuit maps from telemetry: rake 'f1:maps[2026]' (slow — ~1 min per new circuit)"
+  task :maps, [ :season ] => :environment do |_task, args|
+    season = (args[:season] || Date.current.year).to_i
+    service = F1DataService.new
+
+    races = Race.for_season(season).includes(:circuit)
+    todo = races.reject { |race| race.circuit.outline? }
+
+    if todo.empty?
+      puts "All #{races.size} circuits already have an outline."
+      next
+    end
+
+    puts "Tracing #{todo.size} circuits — each downloads a session's telemetry."
+
+    todo.each do |race|
+      circuit = service.import_circuit_outline(season, race.round)
+      puts "  R#{race.round} #{race.circuit.name}: #{circuit ? "traced (#{circuit.outline_season})" : "no telemetry"}"
+    rescue PythonAiService::Error => e
+      puts "  R#{race.round} #{race.circuit.name}: failed — #{e.message.truncate(80)}"
+    end
+  end
+
+  desc "Import results for completed races: rake 'f1:results[2026]'"
+  task :results, [ :season ] => :environment do |_task, args|
+    season = (args[:season] || Date.current.year).to_i
+    service = F1DataService.new
+
+    Race.for_season(season).where(starts_at: ..Time.current).find_each do |race|
+      updated = service.import_race_entries(season, race.round)
+      next puts "  R#{race.round}: no data" if updated.nil?
+
+      winner = updated.winner
+      puts "  R#{race.round} #{updated.name}: #{winner ? "#{winner.driver.full_name} won" : "no classification"}"
+    end
+  end
+
   desc "Fetch CC-licensed driver portraits: rake f1:portraits or rake 'f1:portraits[all]'"
   task :portraits, [ :scope ] => :environment do |_task, args|
     # Only the drivers still missing a portrait, so a run throttled by the

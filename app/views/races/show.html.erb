@@ -20,6 +20,12 @@
       </p>
     </div>
 
+    <% if @race.circuit.outline? %>
+      <div class="text-ink-2">
+        <%= render "circuits/map", circuit: @race.circuit, classes: "h-28 w-56" %>
+      </div>
+    <% end %>
+
     <div class="flex flex-col items-end gap-3">
       <%= render "races/status_pill", status: @race.status %>
 
@@ -59,7 +65,13 @@
 <%= render "shared/data_notice" %>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-3">
-  <div class="lg:col-span-2">
+  <div class="space-y-6 lg:col-span-2">
+    <%# Once the race has run, the actual result leads — the prediction becomes
+        a claim to check rather than the headline. %>
+    <% if @race.result? %>
+      <%= render "races/result", race: @race %>
+    <% end %>
+
     <%= render "predictions/card", race: @race, predictions: @predictions %>
   </div>
 

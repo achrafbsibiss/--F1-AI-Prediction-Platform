@@ -189,6 +189,10 @@ def race_entry_list(season: int, rnd: int) -> Dict[str, Any]:
                     "team": str(row["TeamName"]),
                     "country": str(row.get("CountryCode") or "") or None,
                     "pace": form.get(code, 50.0),
+                    # Only a completed race has a finishing order.
+                    "finish": _optional_int(row.get("Position")) if source == "race" else None,
+                    "status": str(row.get("Status") or "") or None,
+                    "points": _optional_float(row.get("Points")),
                 }
             )
 
@@ -203,6 +207,11 @@ def race_entry_list(season: int, rnd: int) -> Dict[str, Any]:
 
         grid_source = source if grid else "none"
         break
+
+    # A future race has no session of its own, but the field is known from the
+    # races already run — so predict on that rather than refusing outright.
+    if not entries:
+        entries = _entries_from_last_completed_round(season, rnd, form)
 
     if not entries:
         raise LookupError(f"no entry list published for {season} round {rnd}")
@@ -232,11 +241,167 @@ def race_entry_list(season: int, rnd: int) -> Dict[str, Any]:
     }
 
 
+def circuit_outline(season: int, rnd: int, samples: int = 240) -> Dict[str, Any]:
+    """The track's shape, traced from a real fastest lap's position telemetry.
+
+    Published circuit diagrams are copyrighted artwork, so the outline is
+    derived from car position data instead: X/Y samples from the fastest lap,
+    rotated by the circuit's own reference angle, normalised into a 0-100 box
+    and returned as SVG path coordinates.
+
+    Falls back to earlier seasons at the same event when the requested one has
+    no telemetry yet.
+    """
+    import fastf1
+    import numpy as np
+
+    _enable_cache()
+
+    event = fastf1.get_event(season, rnd)
+    event_name = str(event["EventName"])
+    location = str(event["Location"])
+
+    for year in range(season, season - 4, -1):
+        try:
+            # An event name can move venue between seasons — the 2026 Spanish
+            # Grand Prix is Madrid, the 2025 one was Barcelona. Falling back on
+            # name alone would draw the wrong circuit, so require the location
+            # to match before reusing an earlier season's telemetry.
+            if year != season:
+                past = fastf1.get_event(year, event_name)
+                if str(past["Location"]) != location:
+                    log.info(
+                        "%s %s was at %s, not %s — skipping",
+                        year, event_name, past["Location"], location,
+                    )
+                    continue
+
+            session = fastf1.get_session(year, event_name, "R")
+            # telemetry=False on purpose: the full telemetry load also parses
+            # car data (speed, throttle), which raises for some sessions even
+            # though position data is intact. Position is all a map needs.
+            session.load(laps=True, telemetry=False, weather=False, messages=False)
+            pos = _fastest_lap_positions(session)
+        except Exception as exc:
+            log.info("no telemetry for %s %s: %s", year, event_name, exc)
+            continue
+
+        if pos is None or pos.empty:
+            continue
+
+        x = pos["X"].to_numpy(dtype=float)
+        y = pos["Y"].to_numpy(dtype=float)
+
+        # FastF1 stores a per-circuit rotation so the map matches the
+        # orientation the track is normally drawn in.
+        try:
+            angle = float(session.get_circuit_info().rotation) / 180 * np.pi
+            x, y = (
+                x * np.cos(angle) - y * np.sin(angle),
+                x * np.sin(angle) + y * np.cos(angle),
+            )
+        except Exception:
+            pass
+
+        # Even sampling keeps the payload small without distorting the shape.
+        if len(x) > samples:
+            idx = np.linspace(0, len(x) - 1, samples).astype(int)
+            x, y = x[idx], y[idx]
+
+        span = max(x.max() - x.min(), y.max() - y.min()) or 1.0
+        # SVG's Y axis points down; flip so the map isn't mirrored.
+        nx = (x - x.min()) / span * 100
+        ny = (y.max() - y) / span * 100
+
+        return {
+            "season": year,
+            "round": rnd,
+            "event": event_name,
+            "width": round(float(nx.max()), 2),
+            "height": round(float(ny.max()), 2),
+            "points": [[round(float(a), 2), round(float(b), 2)] for a, b in zip(nx, ny)],
+        }
+
+    raise LookupError(f"no position telemetry available for {event_name}")
+
+
+def _fastest_lap_positions(session) -> Optional[pd.DataFrame]:
+    """X/Y samples covering exactly one lap — the shape of the circuit.
+
+    Reads the position stream directly rather than through the telemetry API,
+    which couples position to car data and fails when the latter is malformed.
+    """
+    from fastf1 import _api
+
+    lap = session.laps.pick_fastest()
+    if lap is None or pd.isna(lap["LapStartTime"]) or pd.isna(lap["LapTime"]):
+        return None
+
+    streams = _api.position_data(session.api_path)
+    frame = streams.get(str(lap["DriverNumber"]))
+    if frame is None or frame.empty:
+        return None
+
+    start = lap["LapStartTime"]
+    end = start + lap["LapTime"]
+    window = frame[(frame["Time"] >= start) & (frame["Time"] <= end)]
+
+    # A car sitting in the pits reports (0, 0); those points would draw a
+    # spike from the track to the origin.
+    window = window[(window["X"] != 0) | (window["Y"] != 0)]
+    if "Status" in window.columns:
+        window = window[window["Status"] == "OnTrack"]
+
+    return window if len(window) > 20 else None
+
+
+def _entries_from_last_completed_round(
+    season: int, before_round: int, form: Dict[str, float]
+) -> List[Dict[str, Any]]:
+    """Carry the most recent field forward to a race that hasn't run yet.
+
+    Driver and team are taken from the last completed round, so a mid-season
+    seat change is reflected. No grid is invented here — the caller labels the
+    running order as a form estimate.
+    """
+    import fastf1
+
+    for rnd in range(before_round - 1, 0, -1):
+        try:
+            session = fastf1.get_session(season, rnd, "R")
+            session.load(laps=False, telemetry=False, weather=False, messages=False)
+        except Exception:
+            continue
+
+        results = session.results
+        if results is None or results.empty:
+            continue
+
+        return [
+            {
+                "code": str(row["Abbreviation"]),
+                "name": str(row["FullName"]),
+                "number": _optional_int(row.get("DriverNumber")),
+                "team": str(row["TeamName"]),
+                "country": str(row.get("CountryCode") or "") or None,
+                "pace": form.get(str(row["Abbreviation"]), 50.0),
+            }
+            for _, row in results.iterrows()
+        ]
+
+    return []
+
+
 def _optional_int(value: Any) -> Optional[int]:
     number = pd.to_numeric(value, errors="coerce")
     if pd.isna(number) or number <= 0:
         return None
     return int(number)
+
+
+def _optional_float(value: Any) -> Optional[float]:
+    number = pd.to_numeric(value, errors="coerce")
+    return None if pd.isna(number) else float(number)
 
 
 def build_training_frame(seasons: List[int]) -> pd.DataFrame:

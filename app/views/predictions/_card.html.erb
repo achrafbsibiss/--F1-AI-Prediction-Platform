@@ -1,4 +1,7 @@
 <%
+  # `error` is only supplied by the broadcast path, so default it for the
+  # first render.
+  error ||= nil
   leader = predictions.first
   podium_by_driver = race.predictions.of_type("podium").index_by(&:driver_id)
   entries_by_driver = race.race_entries.index_by(&:driver_id)
@@ -21,12 +24,17 @@
     <% end %>
   </header>
 
-  <% if predictions.empty? %>
+  <% if error.present? %>
+    <div class="px-5 py-12 text-center">
+      <p class="font-medium text-ink-2">Couldn't generate a prediction</p>
+      <p class="mx-auto mt-2 max-w-md text-sm text-ink-muted"><%= error %></p>
+    </div>
+  <% elsif predictions.empty? %>
     <div class="px-5 py-12 text-center">
       <p class="text-ink-2">No prediction yet.</p>
       <p class="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-        Generating one sends the starting grid and each driver's form rating to the
-        model, then fills this table in. It takes about a second.
+        Generating one fetches the entry list, then sends the grid and each driver's
+        form rating to the model. It takes a few seconds the first time.
       </p>
       <% if user_signed_in? %>
         <div class="mt-5">

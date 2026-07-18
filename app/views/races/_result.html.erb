@@ -1,0 +1,54 @@
+<%
+  podium = race.classified_entries.includes(driver: :constructor).limit(3).to_a
+  winner = podium.first
+  # If a prediction exists, show whether it called the winner — the honest
+  # scoreboard for a prediction model.
+  predicted = race.predictions.of_type("race_winner").ranked.first
+%>
+<section class="overflow-hidden rounded border border-hairline bg-surface">
+  <header class="border-b border-hairline px-5 py-4">
+    <h2 class="text-sm font-bold uppercase tracking-wide">Race result</h2>
+    <p class="mt-1 text-sm text-ink-muted">Official classification.</p>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-5 border-b border-hairline bg-surface-2/40 px-5 py-5">
+    <%= render "drivers/avatar", driver: winner.driver, size: "h-16 w-16", text_size: "text-base" %>
+
+    <div class="min-w-0">
+      <p class="text-xs uppercase tracking-wide text-ink-muted">Winner</p>
+      <p class="mt-0.5 truncate text-xl font-bold"><%= winner.driver.full_name %></p>
+      <p class="mt-0.5 text-sm text-ink-muted">
+        <%= winner.constructor.short_name %> · started P<%= winner.grid_position || "?" %>
+      </p>
+    </div>
+
+    <% if predicted %>
+      <p class="ml-auto text-right text-sm">
+        <span class="block text-xs uppercase tracking-wide text-ink-muted">Model called</span>
+        <span class="mt-0.5 block font-semibold <%= predicted.driver_id == winner.driver_id ? "text-good" : "text-ink-2" %>">
+          <%= predicted.driver.last_name %> <%= predicted.percentage %>%
+          <%= predicted.driver_id == winner.driver_id ? "✓" : "✗" %>
+        </span>
+      </p>
+    <% end %>
+  </div>
+
+  <ol>
+    <% podium.each do |entry| %>
+      <li class="flex items-center gap-2.5 border-b border-hairline px-5 py-2.5 text-sm last:border-0">
+        <span class="w-5 shrink-0 text-right font-semibold tabular-nums text-ink-muted">
+          <%= entry.finish_position %>
+        </span>
+        <%= render "constructors/mark", constructor: entry.constructor %>
+        <%= render "drivers/avatar", driver: entry.driver, size: "h-7 w-7", text_size: "text-[10px]" %>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate font-medium"><%= entry.driver.full_name %></span>
+          <span class="block truncate text-xs text-ink-muted"><%= entry.constructor.short_name %></span>
+        </span>
+        <span class="shrink-0 tabular-nums text-ink-muted">
+          <%= entry.points.to_f.round %> pts
+        </span>
+      </li>
+    <% end %>
+  </ol>
+</section>

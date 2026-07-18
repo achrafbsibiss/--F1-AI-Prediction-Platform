@@ -36,3 +36,20 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# --- Python AI service ---
+
+# FastF1's on-disk cache. Regenerated on demand and measured in gigabytes —
+# never commit it.
+/ai_service/data/fastf1_cache/
+
+# Virtualenv: recreate with `pip install -r requirements.txt`.
+/ai_service/venv/
+/ai_service/.venv/
+
+__pycache__/
+*.py[cod]
+
+# Trained model artifacts are build output — rebuild with
+# `python -m training.train_race_model`.
+/ai_service/models/artifacts/

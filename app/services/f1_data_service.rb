@@ -61,6 +61,26 @@ class F1DataService
     nil
   end
 
+  # Traces and caches the track shape. Slow (telemetry download), so it is a
+  # separate step rather than part of the entry-list import.
+  # Returns the circuit, or nil when no telemetry exists for it.
+  def import_circuit_outline(season, round)
+    race = Race.find_by(season: season, round: round)
+    return nil if race.nil?
+
+    payload = ai_service.circuit_outline(season, round)
+    race.circuit.update!(
+      outline_points: payload.fetch("points"),
+      outline_season: payload["season"]
+    )
+    race.circuit
+  rescue PythonAiService::Error => e
+    raise unless e.message.include?("404")
+
+    Rails.logger.info("No telemetry for #{season} round #{round}")
+    nil
+  end
+
   private
 
   attr_reader :ai_service
@@ -92,7 +112,10 @@ class F1DataService
     entry.update!(
       constructor: constructor,
       grid_position: data["grid"],
-      pace_rating: data["pace"]
+      pace_rating: data["pace"],
+      finish_position: data["finish"],
+      points: data["points"],
+      status: data["status"].presence || entry.status
     )
   end
 

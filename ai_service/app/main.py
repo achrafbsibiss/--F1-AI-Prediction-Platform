@@ -47,6 +47,19 @@ def season_calendar(season: int) -> dict:
         raise HTTPException(status_code=502, detail=f"FastF1 lookup failed: {exc}")
 
 
+@app.get("/data/circuit/{season}/{rnd}/outline")
+def circuit_map(season: int, rnd: int) -> dict:
+    """Track outline traced from position telemetry (not a published diagram)."""
+    from data.fastf1_loader import circuit_outline
+
+    try:
+        return circuit_outline(season, rnd)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"FastF1 lookup failed: {exc}")
+
+
 @app.get("/data/race/{season}/{rnd}")
 def race_entries(season: int, rnd: int) -> dict:
     """Entry list for one race — drivers, teams, grid slots and form ratings."""

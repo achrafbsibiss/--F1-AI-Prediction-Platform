@@ -17,6 +17,9 @@ This repository is a **working vertical slice**, not the finished platform.
 
 - Race winner + podium probabilities for the full 22-car field
 - **Real data ingestion** — calendar, entry lists and grids pulled from FastF1
+- **Race results** — winner, podium and points for completed rounds, scored
+  against what the model predicted
+- **Circuit maps** traced from position telemetry
 - Model trained on real results (2021 driver-rows / 101 races, 2022–2026)
 - Rails → FastAPI → Postgres → Turbo Stream broadcast pipeline
 - Devise auth with `user` / `premium_user` / `admin` roles
@@ -26,7 +29,7 @@ This repository is a **working vertical slice**, not the finished platform.
 
 - Qualifying, sprint and championship models
 - Live per-lap prediction updates
-- Lap/telemetry ingestion (the `laps` table exists but nothing fills it)
+- Lap-time ingestion (the `laps` table exists but nothing fills it)
 - JWT API endpoints, premium feature gating, test suite
 
 Nothing in the app invents drivers, teams or grids. Where a real grid does not
@@ -142,10 +145,33 @@ bin/rails "f1:race[2026,10]"
 
 # Or just the next upcoming race
 bin/rails "f1:next[2026]"
+
+# Results for every completed race (winner, podium, points)
+bin/rails "f1:results[2026]"
+
+# Circuit maps — slow, ~1 minute per circuit (downloads telemetry)
+bin/rails "f1:maps[2026]"
 ```
 
 `db:seed` creates the demo logins, then runs the calendar import plus the next
 race automatically.
+
+You don't have to import a race before predicting it: generating a prediction
+imports the entry list on demand if it's missing.
+
+### Circuit maps
+
+Track outlines are **traced from car position telemetry**, not copied from
+published circuit diagrams (which are copyrighted artwork). The fastest lap's
+X/Y samples are rotated by the circuit's reference angle, normalized into a
+0–100 box, and stored on `circuits.outline_points` as an SVG polyline.
+
+Tracing is cached in the database because it costs a ~50 second telemetry
+download per circuit — far too slow for a request. `f1:maps` skips circuits
+that already have an outline, so it's safe to re-run.
+
+For a circuit whose race hasn't happened yet, the outline comes from an earlier
+season at the same event; `circuits.outline_season` records which.
 
 ### Where the grid comes from
 

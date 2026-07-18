@@ -1,5 +1,9 @@
 # Turns a Race into an AI request, then persists the returned probabilities.
 class PredictionService
+  # Raised when a race has no entry list to predict on — usually because it
+  # hasn't been imported yet, which is recoverable by importing it.
+  class NoEntries < StandardError; end
+
   DEFAULT_PACE = 75.0
 
   def initialize(race, ai_service: PythonAiService.new)
@@ -10,7 +14,7 @@ class PredictionService
   # Returns the race_winner predictions, ranked.
   def generate_race_prediction
     entries = race.race_entries.includes(:driver).by_grid.to_a
-    raise ArgumentError, "#{race} has no entries to predict" if entries.size < 2
+    raise NoEntries, "#{race} has no entry list" if entries.size < 2
 
     response = ai_service.predict_race(request_payload(entries))
     persist(response, entries)

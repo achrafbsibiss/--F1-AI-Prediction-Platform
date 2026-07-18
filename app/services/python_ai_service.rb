@@ -32,6 +32,11 @@ class PythonAiService
     get("/data/race/#{season}/#{round}")
   end
 
+  # Slow: generating an outline downloads a session's position telemetry.
+  def circuit_outline(season, round)
+    get("/data/circuit/#{season}/#{round}/outline", timeout: 600)
+  end
+
   private
 
   attr_reader :base_url

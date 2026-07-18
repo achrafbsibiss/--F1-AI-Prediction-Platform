@@ -1,6 +1,11 @@
 class RacesController < ApplicationController
   def index
     @races = Race.includes(:circuit).order(season: :desc, round: :asc)
+
+    # Winners for the calendar, in one query rather than one per race.
+    @winners = RaceEntry.where(race: @races, finish_position: 1)
+                        .includes(driver: :constructor)
+                        .index_by(&:race_id)
   end
 
   def show
